@@ -1,0 +1,27 @@
+[project]
+name = "ralph"
+version = "0.1.0"
+description = "Command-line interface for Ralph"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "typer>=0.27.2",
+]
+
+[project.scripts]
+ralph = "ralph:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+py-modules = ["ralph"]
+
+[tool.setuptools.data-files]
+"share/ralph/skills/design" = ["skills/design/SKILL.md"]
+
+[tool.uv]
+package = true
