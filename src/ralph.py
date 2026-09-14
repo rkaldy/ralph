@@ -62,7 +62,7 @@ def design(feature: str) -> None:
             )
             result = thread.run(
                 [
-                    TextInput(text=f"$prd Create a PRD for this feature {feature}"),
+                    TextInput(text=f"$prd Make an interactive user session for creating a PRD for this feature {feature}"),
                     SkillInput(name="prd", path=str(skill_path("prd"))),
                 ]
             )

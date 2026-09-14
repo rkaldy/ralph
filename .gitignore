@@ -1,6 +1,8 @@
 __pycache__/
 *.py[cod]
 
-.codegraph
-.idea
+build/
+*.egg-info/
+.codegraph/
+.idea/
 .venv/
