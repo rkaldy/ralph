@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Command-line interface for Ralph"
 requires-python = ">=3.12"
 dependencies = [
+    "openai-codex>=0.154.0",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
     "typer>=0.27.2",
@@ -21,7 +22,7 @@ package-dir = { "" = "src" }
 py-modules = ["ralph"]
 
 [tool.setuptools.data-files]
-"share/ralph/skills/design" = ["skills/design/SKILL.md"]
+"share/ralph/skills/prd" = ["skills/prd/SKILL.md"]
 
 [tool.uv]
 package = true

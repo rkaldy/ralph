@@ -16,6 +16,7 @@ Create detailed Product Requirements Documents that are clear, actionable, and s
 2. Ask 3-5 essential clarifying questions (with lettered options)
 3. Generate a structured PRD based on answers
 4. Save to `tasks/prd-[feature-name].md`
+5. After creating the PRD, finish your response with this line: `<!-- ralph:complete path=tasks/prd-[feature-name].md -->`
 
 **Important:** Do NOT start implementing. Just create the PRD.
 
@@ -137,6 +138,22 @@ The PRD reader may be a junior developer or AI agent. Therefore:
 - **Format:** Markdown (`.md`)
 - **Location:** `tasks/`
 - **Filename:** `prd-[feature-name].md` (kebab-case)
+
+Choose `[feature-name]` only after the requirements are agreed. Derive it from
+the feature title using 2-6 concise words, convert it to lowercase ASCII,
+replace spaces and punctuation with single hyphens, and remove leading or
+trailing hyphens. For example, `Task Priority System` becomes
+`task-priority-system`.
+
+After successfully writing the file, end the final response with exactly one
+completion marker containing its actual relative path:
+
+```text
+<!-- ralph:complete path=tasks/prd-[feature-name].md -->
+```
+
+Replace `[feature-name]` with the selected name. Do not emit the marker before
+the file exists, and do not put the marker inside a Markdown code block.
 
 ---
 

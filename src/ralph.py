@@ -1,14 +1,19 @@
 """Ralph command-line application."""
 
-import subprocess
+import re
 import sys
 from pathlib import Path
 
 import typer
+from openai_codex import Codex, CodexError, Sandbox, SkillInput, TextInput
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 app = typer.Typer(no_args_is_help=True)
+DESIGN_COMPLETE_PATTERN = re.compile(
+    r"<!-- ralph:complete "
+    r"path=(?P<path>tasks/prd-[a-z0-9]+(?:-[a-z0-9]+)*\.md) -->"
+)
 
 
 class RalphConfig(BaseSettings):
@@ -40,35 +45,59 @@ def skill_path(skill: str) -> Path:
 
     for path in (checkout_skill, installed_skill):
         if path.is_file():
-            return path
+            return path.resolve()
     raise FileNotFoundError(f"{skill} skill is not installed")
 
 
 @app.command()
-def design() -> None:
-    try:
-        path = skill_path("design")
-        result = subprocess.run(
-            [
-                "codex",
-                "--cd",
-                str(Path.cwd()),
-                "--sandbox",
-                "workspace-write",
-                "--ask-for-approval",
-                "on-request",
-                (
-                    f"$design Create a PRD of an user-,"
-                ),
-            ],
-            check=False,
-        )
-    except FileNotFoundError as error:
-        typer.echo(f"Error: {error}", err=True)
-        raise typer.Exit(code=127) from error
+def design(feature: str) -> None:
+    """Interactively design a product and write its requirements to tasks/."""
+    cwd = Path.cwd()
 
-    if result.returncode != 0:
-        raise typer.Exit(code=result.returncode)
+    try:
+        with Codex() as codex:
+            thread = codex.thread_start(
+                cwd=str(cwd),
+                sandbox=Sandbox.workspace_write,
+            )
+            result = thread.run(
+                [
+                    TextInput(text=f"$prd Create a PRD for this feature {feature}"),
+                    SkillInput(name="prd", path=str(skill_path("prd"))),
+                ]
+            )
+
+            while True:
+                response = result.final_response
+                if not response:
+                    raise RuntimeError("Codex returned an empty response")
+
+                completion = DESIGN_COMPLETE_PATTERN.search(response)
+                visible_response = DESIGN_COMPLETE_PATTERN.sub("", response).strip()
+                if visible_response:
+                    typer.echo(f"\nCodex:\n{visible_response}")
+
+                if completion:
+                    relative_path = Path(completion.group("path"))
+                    prd_path = (cwd / relative_path).resolve()
+                    try:
+                        prd_path.relative_to(cwd.resolve())
+                    except ValueError as error:
+                        raise RuntimeError(
+                            f"Codex returned a PRD path outside the project: {relative_path}"
+                        ) from error
+
+                    if not prd_path.is_file():
+                        raise RuntimeError(f"Codex did not create {relative_path}")
+
+                    typer.echo(f"\nPRD: {relative_path}")
+                    return
+
+                answer = typer.prompt("\nYou")
+                result = thread.run(answer)
+    except (CodexError, FileNotFoundError, RuntimeError) as error:
+        typer.echo(f"Error: {error}", err=True)
+        raise typer.Exit(code=1) from error
 
 
 @app.command()
