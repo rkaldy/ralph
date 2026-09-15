@@ -1,0 +1,59 @@
+{
+  "project": "Ralph",
+  "branchName": "ralph/add-more-ruff-checks",
+  "description": "Expand the repository's Ruff configuration to the stable ALL preset, resolve the resulting findings without changing runtime behavior, and preserve the existing local auto-fixing workflow.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Enable the comprehensive Ruff rule set",
+      "description": "As a maintainer, I want Ruff's stable `ALL` preset enabled so that the project benefits from new correctness, security, maintainability, and consistency checks.",
+      "acceptanceCriteria": [
+        "`[tool.ruff.lint]` in `pyproject.toml` uses `select = [\"ALL\"]` instead of enumerating the current rule families",
+        "Ruff preview mode remains disabled, so unstable preview rules are not part of this feature",
+        "The configuration explicitly ignores Ruff's formatter-incompatible rules: `W191`, `E111`, `E114`, `E117`, `D203`, `D206`, `D300`, `Q000`, `Q001`, `Q002`, `Q003`, `Q004`, `COM812`, `COM819`, and `ISC002`",
+        "`D213` is explicitly ignored in favor of `D212`, avoiding Ruff's mutually exclusive pydocstyle convention warning",
+        "Every additional global, file-level, or line-level ignore has a nearby comment explaining why the rule is unsuitable at that scope",
+        "`uv run ruff check .` emits no rule-conflict or formatter-compatibility warnings",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Establish a clean expanded-rule baseline",
+      "description": "As a developer, I want the repository to pass the expanded lint configuration immediately so that future failures identify newly introduced issues.",
+      "acceptanceCriteria": [
+        "Every Python file in Ruff's configured scope passes `uv run ruff check .`",
+        "Missing annotations, docstrings, exception-message issues, naming findings, and other violations from the expanded effective rule set are fixed or narrowly suppressed with a documented justification",
+        "The intentional `›` character used by the terminal interface is retained through a narrow suppression if needed instead of changing the visible interface solely to satisfy `RUF001`",
+        "No repository-wide rule is disabled merely to avoid correcting a violation in one file when a narrower, understandable fix or suppression is available",
+        "Source edits do not alter command names, prompts, output semantics, exit behavior, configuration keys, or Codex session behavior",
+        "No unrelated refactoring, renaming, dependency update, or reformatting of non-Python files is included",
+        "`uv run ruff format --check .` succeeds",
+        "Existing automated tests pass without behavior-oriented test updates",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Preserve the local auto-fixing workflow",
+      "description": "As a developer, I want `make lint` to continue applying safe Ruff fixes and formatting so that the stricter rules do not change my established workflow.",
+      "acceptanceCriteria": [
+        "`make lint` continues to run Ruff formatting, Ruff linting with safe automatic fixes, and mypy",
+        "The workflow does not enable Ruff's unsafe fixes globally",
+        "Running `make lint` on the completed repository succeeds",
+        "Running `make lint` a second time succeeds without modifying tracked files",
+        "No pre-commit configuration or CI workflow is added or changed",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

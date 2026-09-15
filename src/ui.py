@@ -8,6 +8,7 @@ from threading import Event, Thread
 
 import typer
 
+from codex import CodexSession
 from stream import CODEX_OUTPUT_COLOR
 
 INTRO_BRIGHT = (255, 232, 200)
@@ -21,6 +22,10 @@ SPINNER_LABEL = ""
 
 def intro(mode: str, gpt_model: str | None, reasoning: str | None) -> None:
     """Print the -framed heading for a design session."""
+
+    default_gpt_model, default_reasoning = CodexSession.model_settings()
+    gpt_model = gpt_model or default_gpt_model
+    reasoning = reasoning or default_reasoning
 
     directory = Path.cwd()
     with contextlib.suppress(BaseException):

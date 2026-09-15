@@ -1,5 +1,8 @@
 """Ralph command-line application."""
 
+from pathlib import Path
+from typing import Annotated
+
 import typer
 from openai_codex import CodexError
 from pydantic import field_validator
@@ -45,20 +48,18 @@ class RalphConfig(BaseSettings):
 
 @app.callback()
 def load_config(ctx: typer.Context) -> None:
-    """Load Ralph configuration."""
     ctx.obj = RalphConfig()
 
 
 @app.command()
-def design(ctx: typer.Context, feature: str) -> None:
+def design(
+    ctx: typer.Context,
+    feature: Annotated[str, typer.Argument(help="Simple, high-level feature description")],
+) -> None:
+    "Run design phase and create a PRD"
     config: RalphConfig = ctx.obj
 
-    default_gpt_model, default_reasoning = CodexSession.model_settings()
-    ui.intro(
-        "Project Requirement Description session",
-        config.GPT_MODEL_DESIGN or default_gpt_model,
-        config.GPT_REASONING_DESIGN or default_reasoning,
-    )
+    ui.intro("Project Requirement Description session", config.GPT_MODEL_DESIGN, config.GPT_REASONING_DESIGN)
 
     try:
         with CodexSession(
@@ -89,12 +90,56 @@ def design(ctx: typer.Context, feature: str) -> None:
 
 
 @app.command()
+def convert(
+    ctx: typer.Context,
+    prd: Annotated[
+        Path,
+        typer.Argument(
+            help="Path to the Markdown PRD to convert",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+        ),
+    ],
+) -> None:
+    "Convert Markdown PRD to `prd.json` and split it to stories, implementable by single Codex turn"
+    config: RalphConfig = ctx.obj
+    default_gpt_model, default_reasoning = CodexSession.model_settings()
+    ui.intro(
+        "PRD conversion",
+        config.GPT_MODEL_DESIGN or default_gpt_model,
+        config.GPT_REASONING_DESIGN or default_reasoning,
+    )
+
+    output_path = Path.cwd() / "prd.json"
+    try:
+        with CodexSession("convert",
+            model=config.GPT_MODEL_DESIGN,
+            reasoning=config.GPT_REASONING_DESIGN,
+        ) as session:
+            response = session.prompt(f"Convert the Markdown PRD at {prd} to {output_path}.")
+
+        if not response.file or response.file.resolve() != output_path.resolve():
+            raise CodexException("Codex did not complete the conversion to prd.json")
+
+        typer.echo(
+            typer.style("Conversion completed. The generated JSON PRD is at ", fg=INTRO_BRIGHT)
+            + typer.style(output_path, fg=INTRO_BRIGHT, bold=True)
+            + typer.style(" .\n", fg=INTRO_BRIGHT)
+        )
+    except (CodexError, CodexException) as error:
+        typer.echo(f"Error: {error}", err=True)
+        raise typer.Exit(code=1) from error
+
+
+@app.command()
 def execute() -> None:
-    """Run the execution phase."""
+    "Implement the feature, driven by JSON PRD"
+    pass
 
 
 def main() -> None:
-    """Run the Ralph CLI."""
     app()
 
 

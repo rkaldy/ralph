@@ -23,6 +23,7 @@ py-modules = ["ralph"]
 
 [tool.setuptools.data-files]
 "share/ralph/skills/prd" = ["skills/prd/SKILL.md"]
+"share/ralph/skills/convert" = ["skills/convert/SKILL.md"]
 
 [tool.uv]
 package = true
