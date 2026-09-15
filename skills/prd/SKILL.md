@@ -81,7 +81,6 @@ Each story should be small enough to implement in one focused session.
 **Acceptance Criteria:**
 - [ ] Specific verifiable criterion
 - [ ] Another criterion
-- [ ] Typecheck/lint passes
 - [ ] **[UI stories only]** Verify in browser using dev-browser skill
 ```
 
@@ -147,7 +146,7 @@ After successfully writing the file, end the final response with exactly one
 completion marker containing its actual relative path:
 
 ```text
-<!-- ralph:complete path=tasks/prd-[feature-name].md -->
+<!-- ralph:complete path=.ralph/tasks/prd-[feature-name].md -->
 ```
 
 Replace `[feature-name]` with the selected name. Do not emit the marker before

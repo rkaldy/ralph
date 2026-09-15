@@ -31,3 +31,11 @@ class PRD(BaseModel):
             key=lambda story: story.priority,
             default=None,
         )
+
+
+class ExecutionResult(BaseModel):
+    description: str
+    files: list[str]
+    patterns: list[str]
+    gotchas: list[str]
+    blocker: str | None = None

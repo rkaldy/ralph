@@ -1,4 +1,3 @@
-import typer
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,9 +14,12 @@ class RalphConfig(BaseSettings):
         extra="ignore",
     )
 
-    LINT_COMMAND: str
-    TYPECHECK_COMMAND: str
-    TEST_COMMAND: str
+    LINT_COMMAND: str = ""
+    TYPECHECK_COMMAND: str = ""
+    TEST_COMMAND: str = ""
+
+    MAX_ITERATIONS: int = 5
+
     GPT_MODEL_DESIGN: str | None = None
     GPT_REASONING_DESIGN: str | None = None
     GPT_MODEL_EXECUTION: str | None = None
@@ -50,5 +52,3 @@ class RalphConfig(BaseSettings):
             self.GPT_REASONING_EXECUTION = reasoning
 
         return self
-
-

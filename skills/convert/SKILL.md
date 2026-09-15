@@ -1,11 +1,11 @@
 ---
 name: convert
-description: "Convert PRDs to prd.json format for the Ralph autonomous agent system. Use when you have an existing PRD and need to convert it to Ralph's JSON format. Triggers on: convert this prd, turn this into ralph format, create prd.json from this, ralph json."
+description: "Convert PRDs to JSON format for the Ralph autonomous agent system. Use when you have an existing PRD and need to convert it to Ralph's JSON format. Triggers on: convert this prd, turn this into ralph format, create `.ralph/prd.json` from this."
 ---
 
 # Ralph PRD Converter
 
-Converts existing PRDs to the `prd.json` format that Ralph uses for autonomous execution.
+Converts existing PRDs to the `.ralph/prd.json` format that Ralph uses for autonomous execution.
 
 ---
 
@@ -223,16 +223,16 @@ Add ability to mark tasks with different statuses.
 
 ## Checklist Before Saving
 
-Before writing prd.json, verify:
+Before writing `.ralph/prd.json`, verify:
 
-- [ ] **Previous run archived** (if prd.json exists with different branchName, archive it first)
+- [ ] **Previous run archived** (if `.ralph/prd.json` exists with different branchName, archive it first)
 - [ ] Each story is completable in one iteration (small enough)
 - [ ] Stories are ordered by dependency (schema to backend to UI)
 - [ ] UI stories have "Verify in browser using dev-browser skill" as criterion
 - [ ] Acceptance criteria are verifiable (not vague)
 - [ ] No story depends on a later story
 
-After successfully writing and validating `.ralph/prd.json`, end the final response with:
+After successfully writing and validating `.ralph/prd.json` OR if you successfully validate the existing `.ralph/prd.json`, end the final response with:
 
 ```text
 <!-- ralph:complete path=.ralph/prd.json -->

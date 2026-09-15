@@ -28,7 +28,7 @@ class CodexResponse:
     file: Path | None = None
 
 
-class CodexException(Exception):
+class RalphError(Exception):
     pass
 
 
@@ -45,14 +45,6 @@ class CodexSession:
         self.model = model or None
         self.reasoning = reasoning or None
         self.first = True
-
-    def skill_path(self) -> Path:
-        checkout_skill = Path(__file__).resolve().parent.parent / f"skills/{self.skill}/SKILL.md"
-        installed_skill = Path(sys.prefix) / f"share/ralph/skills/{self.skill}/SKILL.md"
-        for path in (checkout_skill, installed_skill):
-            if path.is_file():
-                return path.resolve()
-        raise CodexException(f"'{self.skill}' skill is not installed")
 
     def __enter__(self) -> "CodexSession":
         self.codex.__enter__()
@@ -88,6 +80,14 @@ class CodexSession:
             reasoning if isinstance(reasoning, str) and reasoning else None,
         )
 
+    def _skill_path(self) -> Path:
+        checkout_skill = Path(__file__).resolve().parent.parent / f"skills/{self.skill}/SKILL.md"
+        installed_skill = Path(sys.prefix) / f"share/ralph/skills/{self.skill}/SKILL.md"
+        for path in (checkout_skill, installed_skill):
+            if path.is_file():
+                return path.resolve()
+        raise RalphError(f"'{self.skill}' skill is not installed")
+
     def _build_response(self, result: str) -> CodexResponse:
         cwd = Path.cwd()
 
@@ -101,13 +101,11 @@ class CodexSession:
             if response.file:
                 absolute_path = (cwd / response.file).resolve()
                 if not absolute_path.is_file():
-                    raise CodexException(f"Codex did not create {response.file}")
+                    raise RalphError(f"Codex did not create {response.file}")
                 try:
                     absolute_path.relative_to(cwd.resolve())
                 except ValueError as error:
-                    raise CodexException(
-                        f"Codex returned a path outside the project: {response.file}"
-                    ) from error
+                    raise RalphError(f"Codex returned a path outside the project: {response.file}") from error
 
         return response
 
@@ -115,9 +113,9 @@ class CodexSession:
         input: list[InputItem] = [TextInput(text=prompt)]
         if self.first:
             self.first = False
-            input.append(SkillInput(name=self.skill, path=str(self.skill_path())))
+            input.append(SkillInput(name=self.skill, path=str(self._skill_path())))
         if self.thread is None:
-            raise CodexException("Codex session is not started")
+            raise RalphError("Codex session is not started")
 
         turn = self.thread.turn(input)
         output = CodexStreamOutput()
@@ -139,12 +137,12 @@ class CodexSession:
                     output.write(payload.delta, type(payload))
                 elif isinstance(payload, TurnCompletedNotification):
                     if payload.turn.status == TurnStatus.failed:
-                        raise CodexException(payload.turn.error)
+                        raise RalphError(payload.turn.error)
         finally:
             waiting.close()
             output.finish()
 
         result = output.result
         if not result:
-            raise CodexException("Codex returned an empty response")
+            raise RalphError("Codex returned an empty response")
         return self._build_response(result)

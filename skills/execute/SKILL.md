@@ -1,6 +1,6 @@
 ---
-name: execute
-description: Implement one user story selected by the Ralph orchestrator from the workspace's `prd.json`.
+name: "execute"
+description: "Implement one user story. Use in execution phase. Triggers on: implement an user story."
 ---
 
 # Ralph Story Implementation
@@ -16,6 +16,16 @@ Implement the single user story identified in the current prompt. Keep the chang
 
 If the requested story cannot be found or its requirements are contradictory, report the blocker instead of selecting or implementing a different story.
 
+## Previous Quality-check Failures
+
+Before making changes, read any of these files that exist:
+
+- `.ralph/lint-result.txt`: the orchestrator's linter output; its presence means lint failed.
+- `.ralph/typecheck-result.txt`: the orchestrator's typecheck output; its presence means type checking failed.
+- `.ralph/test-result.txt`: the orchestrator's test output; its presence means tests failed.
+
+Use their output to diagnose and fix the reported errors as part of the selected story. If a reported failure is unrelated to the story or cannot be fixed safely within its scope, report it as a blocker. Do not create, modify, or delete these files; the Ralph orchestrator owns them.
+
 ## Implementation
 
 - Implement only the selected story.
@@ -23,7 +33,7 @@ If the requested story cannot be found or its requirements are contradictory, re
 - Keep changes minimal and avoid unrelated refactoring.
 - You may run focused checks or specific tests while developing, when they provide useful feedback. But the Ralph orchestrator runs the authoritative lint, typecheck, and test commands after your turn.
 
-## Quality Requirements 
+## Quality Requirements
 
 - Keep changes focused and minimal
 - Follow existing code patterns

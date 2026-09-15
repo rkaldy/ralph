@@ -118,3 +118,11 @@ def codex_spinner() -> Iterator[None]:
         stopped.set()
         worker.join()
         typer.echo(f"\r{' ' * (len(SPINNER_LABEL) + 2)}\r", nl=False)
+
+
+def horizontal_line() -> None:
+    """Draw a horizontal line across the full console width."""
+    terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
+    typer.echo()
+    typer.secho("─" * terminal_width, fg=typer.colors.WHITE)
+    typer.echo()
