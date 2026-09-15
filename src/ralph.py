@@ -5,7 +5,7 @@ from openai_codex import CodexError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 import ui
-from codex import CodexSession, CodexException
+from codex import CodexException, CodexSession
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -33,18 +33,13 @@ def load_config(ctx: typer.Context) -> None:
 
 @app.command()
 def design(feature: str) -> None:
-    typer.echo(
-        ui.format_codex_response(
-            "**RALPH** Project Requirement Description session"
-        )
-    )
+    typer.echo(ui.format_codex_response("**RALPH** Project Requirement Description session"))
 
     try:
         with CodexSession("prd") as session:
             with ui.codex_spinner():
                 response = session.prompt(
-                    "Make an interactive user session for creating a PRD for "
-                    f"this feature: {feature}"
+                    f"Make an interactive user session for creating a PRD for this feature: {feature}"
                 )
             while True:
                 typer.echo(ui.format_codex_response(response.text))

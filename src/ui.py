@@ -1,8 +1,8 @@
 import re
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from threading import Event, Thread
-from typing import Iterator
 
 import typer
 
@@ -67,4 +67,3 @@ def codex_spinner() -> Iterator[None]:
         stopped.set()
         worker.join()
         typer.echo(f"\r{' ' * (len(SPINNER_LABEL) + 2)}\r", nl=False)
-

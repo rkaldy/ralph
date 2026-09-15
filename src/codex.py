@@ -1,15 +1,13 @@
 import re
 import sys
-from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator
+from types import TracebackType
 
-from openai_codex import Codex, Sandbox, TextInput, SkillInput, Thread, RunInput
+from openai_codex import Codex, InputItem, Sandbox, SkillInput, TextInput, Thread
 
-COMPLETION_PATTERN = re.compile(
-    r"<!-- ralph:complete path=(?P<path>.+?) -->"
-)
+COMPLETION_PATTERN = re.compile(r"<!-- ralph:complete path=(?P<path>.+?) -->")
+
 
 @dataclass
 class CodexResponse:
@@ -31,9 +29,7 @@ class CodexSession:
 
     def skill_path(self) -> Path:
         checkout_skill = Path(__file__).resolve().parent.parent / f"skills/{self.skill}/SKILL.md"
-        installed_skill = (
-            Path(sys.prefix) / f"share/ralph/skills/{self.skill}/SKILL.md"
-        )
+        installed_skill = Path(sys.prefix) / f"share/ralph/skills/{self.skill}/SKILL.md"
         for path in (checkout_skill, installed_skill):
             if path.is_file():
                 return path.resolve()
@@ -47,16 +43,24 @@ class CodexSession:
         )
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.codex.__exit__(exc_type, exc_val, exc_tb)
 
     def prompt(self, prompt: str) -> CodexResponse:
         cwd = Path.cwd()
 
-        input: RunInput = [TextInput(text=prompt)]
+        input: list[InputItem] = [TextInput(text=prompt)]
         if self.first:
             self.first = False
             input.append(SkillInput(name=self.skill, path=str(self.skill_path())))
+        if self.thread is None:
+            raise CodexException("Codex session is not started")
+
         result = self.thread.run(input).final_response
         if not result:
             raise CodexException("Codex returned an empty response")
