@@ -1,5 +1,6 @@
 import re
 import sys
+import tomllib
 from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,7 @@ from openai_codex.generated.v2_all import (
 import ui
 from stream import CodexStreamOutput
 
+CODEX_CONFIG_PATH = Path.home() / ".codex/config.toml"
 COMPLETION_PATTERN = re.compile(r"<!-- ralph:complete path=(?P<path>.+?) -->")
 
 
@@ -31,10 +33,17 @@ class CodexException(Exception):
 
 
 class CodexSession:
-    def __init__(self, skill: str):
+    def __init__(
+        self,
+        skill: str,
+        model: str | None = None,
+        reasoning: str | None = None,
+    ):
         self.codex = Codex()
         self.thread: Thread | None = None
         self.skill = skill
+        self.model = model or None
+        self.reasoning = reasoning or None
         self.first = True
 
     def skill_path(self) -> Path:
@@ -50,6 +59,8 @@ class CodexSession:
         self.thread = self.codex.thread_start(
             cwd=str(Path.cwd()),
             sandbox=Sandbox.workspace_write,
+            model=self.model,
+            config=({"model_reasoning_effort": self.reasoning} if self.reasoning is not None else None),
         )
         return self
 
@@ -60,6 +71,22 @@ class CodexSession:
         exc_tb: TracebackType | None,
     ) -> None:
         self.codex.__exit__(exc_type, exc_val, exc_tb)
+
+    @staticmethod
+    def model_settings() -> tuple[str | None, str | None]:
+        """Load model settings from the user's Codex configuration."""
+        try:
+            with CODEX_CONFIG_PATH.open("rb") as config_file:
+                config = tomllib.load(config_file)
+        except OSError:
+            return None, None
+
+        model = config.get("model")
+        reasoning = config.get("model_reasoning_effort")
+        return (
+            model if isinstance(model, str) and model else None,
+            reasoning if isinstance(reasoning, str) and reasoning else None,
+        )
 
     def _build_response(self, result: str) -> CodexResponse:
         cwd = Path.cwd()

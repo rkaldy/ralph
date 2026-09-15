@@ -1,3 +1,4 @@
+import contextlib
 import shutil
 import sys
 from collections.abc import Iterator
@@ -9,7 +10,7 @@ import typer
 
 from stream import CODEX_OUTPUT_COLOR
 
-INTRO_BRIGHT = (255, 240, 224)
+INTRO_BRIGHT = (255, 232, 200)
 INTRO_DARK = (128, 120, 112)
 USER_BACKGROUND = (32, 32, 32)
 USER_FOREGROUND = typer.colors.BRIGHT_WHITE
@@ -18,11 +19,17 @@ SPINNER_INTERVAL = 0.08
 SPINNER_LABEL = ""
 
 
-def intro(mode: str) -> None:
+def intro(mode: str, gpt_model: str | None, reasoning: str | None) -> None:
     """Print the -framed heading for a design session."""
-    title = f"Ralph {mode}"
-    directory = f"directory: {Path.cwd()}"
-    content_width = max(len(f"Ralph {mode}"), len(directory)) + 10
+
+    directory = Path.cwd()
+    with contextlib.suppress(BaseException):
+        directory = Path("~") / directory.relative_to(Path.home())
+
+    title_row = f"Ralph {mode}"
+    model_row = f"model: {gpt_model} {reasoning}"
+    directory_row = f"directory: {directory}"
+    content_width = max(len(title_row), len(model_row), len(directory_row)) + 10
 
     def border(text: str) -> str:
         return typer.style(text, fg=INTRO_DARK)
@@ -32,15 +39,25 @@ def intro(mode: str) -> None:
         border("│ ")
         + typer.style("Ralph ", fg=INTRO_BRIGHT, bold=True)
         + typer.style(mode, fg=INTRO_BRIGHT)
-        + typer.style(" " * (content_width - len(title)))
+        + typer.style(" " * (content_width - len(title_row)))
         + border(" │")
     )
     typer.echo(border(f"│{' ' * (content_width + 2)}│"))
     typer.echo(
         border("│ ")
+        + typer.style("model: ", fg=INTRO_DARK)
+        + typer.style(
+            f"{gpt_model} {reasoning}",
+            fg=INTRO_BRIGHT,
+        )
+        + typer.style(" " * (content_width - len(model_row)))
+        + border(" │")
+    )
+    typer.echo(
+        border("│ ")
         + typer.style("directory: ", fg=INTRO_DARK)
-        + typer.style(Path.cwd(), fg=INTRO_BRIGHT)
-        + typer.style(" " * (content_width - len(directory)))
+        + typer.style(directory, fg=INTRO_BRIGHT)
+        + typer.style(" " * (content_width - len(directory_row)))
         + border(" │")
     )
     typer.echo(border(f"╰{'─' * (content_width + 2)}╯"))
