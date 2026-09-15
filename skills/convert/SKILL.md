@@ -1,7 +1,6 @@
 ---
 name: convert
 description: "Convert PRDs to prd.json format for the Ralph autonomous agent system. Use when you have an existing PRD and need to convert it to Ralph's JSON format. Triggers on: convert this prd, turn this into ralph format, create prd.json from this, ralph json."
-user-invocable: true
 ---
 
 # Ralph PRD Converter
@@ -20,7 +19,6 @@ Take a PRD (markdown file or text) and convert it to `prd.json` in your ralph di
 
 ```json
 {
-  "project": "[Project Name]",
   "branchName": "ralph/[feature-name-kebab-case]",
   "description": "[Feature description from PRD title/intro]",
   "userStories": [
@@ -34,8 +32,7 @@ Take a PRD (markdown file or text) and convert it to `prd.json` in your ralph di
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": false
     }
   ]
 }
@@ -121,7 +118,7 @@ Frontend stories are NOT complete until visually verified. Ralph will use the de
 1. **Each user story becomes one JSON entry**
 2. **IDs**: Sequential (US-001, US-002, etc.)
 3. **Priority**: Based on dependency order, then document order
-4. **All stories**: `passes: false` and empty `notes`
+4. **All stories**: `passes: false` 
 5. **branchName**: Derive from feature name, kebab-case, prefixed with `ralph/`
 6. **Always add**: "Typecheck passes" to every story's acceptance criteria
 
@@ -164,7 +161,6 @@ Add ability to mark tasks with different statuses.
 **Output prd.json:**
 ```json
 {
-  "project": "TaskApp",
   "branchName": "ralph/task-status",
   "description": "Task Status Feature - Track task progress with status indicators",
   "userStories": [
@@ -178,8 +174,7 @@ Add ability to mark tasks with different statuses.
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": false
     },
     {
       "id": "US-002",
@@ -192,8 +187,7 @@ Add ability to mark tasks with different statuses.
         "Verify in browser using dev-browser skill"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": false
     },
     {
       "id": "US-003",
@@ -207,8 +201,7 @@ Add ability to mark tasks with different statuses.
         "Verify in browser using dev-browser skill"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": false
     },
     {
       "id": "US-004",
@@ -221,8 +214,7 @@ Add ability to mark tasks with different statuses.
         "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": false
     }
   ]
 }
