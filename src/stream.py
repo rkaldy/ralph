@@ -2,7 +2,7 @@ import typer
 from openai_codex.generated.v2_all import AgentMessageDeltaNotification
 from pydantic import BaseModel
 
-from ui import CODEX_OUTPUT, COMMAND_OUTPUT, INTRO_DARK
+from ui import CODEX_OUTPUT, COMMAND_OUTPUT, INTRO_DARK, MONOSPACE
 
 
 class CodexStreamOutput:
@@ -12,6 +12,7 @@ class CodexStreamOutput:
 
     def __init__(self) -> None:
         self.bold = False
+        self.monospace = False
         self.pending_star = False
         self.result_parts: list[str] = []
         self.pending_output = ""
@@ -56,12 +57,26 @@ class CodexStreamOutput:
         def flush() -> None:
             if not segment:
                 return
-            color = CODEX_OUTPUT if self.payload_type is AgentMessageDeltaNotification else COMMAND_OUTPUT
+            color: str | tuple[int, int, int]
+            if self.monospace:
+                color = MONOSPACE
+            elif self.payload_type is AgentMessageDeltaNotification:
+                color = CODEX_OUTPUT
+            else:
+                color = COMMAND_OUTPUT
             rendered.append(typer.style("".join(segment), fg=color, bold=self.bold))
             segment.clear()
 
         for character in text:
-            if character == "*":
+            if character == "`":
+                if self.pending_star:
+                    segment.append("*")
+                    self.pending_star = False
+                flush()
+                self.monospace = not self.monospace
+                continue
+
+            if character == "*" and not self.monospace:
                 if self.pending_star:
                     flush()
                     self.bold = not self.bold
