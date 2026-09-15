@@ -3,7 +3,6 @@ from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from codex import CodexSession
-from ralph import app
 
 
 class RalphConfig(BaseSettings):
@@ -53,6 +52,3 @@ class RalphConfig(BaseSettings):
         return self
 
 
-@app.callback()
-def load_config(ctx: typer.Context) -> None:
-    ctx.obj = RalphConfig()

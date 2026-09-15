@@ -14,6 +14,11 @@ from ui import INTRO_BRIGHT
 app = typer.Typer(no_args_is_help=True)
 
 
+@app.callback()
+def load_config(ctx: typer.Context) -> None:
+    ctx.obj = RalphConfig()
+
+
 @app.command()
 def design(
     ctx: typer.Context,

@@ -5,13 +5,13 @@ description: "Convert PRDs to prd.json format for the Ralph autonomous agent sys
 
 # Ralph PRD Converter
 
-Converts existing PRDs to the prd.json format that Ralph uses for autonomous execution.
+Converts existing PRDs to the `prd.json` format that Ralph uses for autonomous execution.
 
 ---
 
 ## The Job
 
-Take a PRD (markdown file or text) and convert it to `prd.json` in your ralph directory.
+Take a PRD (markdown file or text) and convert it to `.ralph/prd.json` in the current directory.
 
 ---
 
@@ -94,16 +94,6 @@ Each criterion must be something Ralph can CHECK, not something vague.
 - "Good UX"
 - "Handles edge cases"
 
-### Always include as final criterion:
-```
-"Typecheck passes"
-```
-
-For stories with testable logic, also include:
-```
-"Tests pass"
-```
-
 ### For stories that change UI, also include:
 ```
 "Verify in browser using dev-browser skill"
@@ -120,7 +110,6 @@ Frontend stories are NOT complete until visually verified. Ralph will use the de
 3. **Priority**: Based on dependency order, then document order
 4. **All stories**: `passes: false` 
 5. **branchName**: Derive from feature name, kebab-case, prefixed with `ralph/`
-6. **Always add**: "Typecheck passes" to every story's acceptance criteria
 
 ---
 
@@ -170,8 +159,7 @@ Add ability to mark tasks with different statuses.
       "description": "As a developer, I need to store task status in the database.",
       "acceptanceCriteria": [
         "Add status column: 'pending' | 'in_progress' | 'done' (default 'pending')",
-        "Generate and run migration successfully",
-        "Typecheck passes"
+        "Generate and run migration successfully"
       ],
       "priority": 1,
       "passes": false
@@ -183,7 +171,6 @@ Add ability to mark tasks with different statuses.
       "acceptanceCriteria": [
         "Each task card shows colored status badge",
         "Badge colors: gray=pending, blue=in_progress, green=done",
-        "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 2,
@@ -197,7 +184,6 @@ Add ability to mark tasks with different statuses.
         "Each row has status dropdown or toggle",
         "Changing status saves immediately",
         "UI updates without page refresh",
-        "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 3,
@@ -210,7 +196,6 @@ Add ability to mark tasks with different statuses.
       "acceptanceCriteria": [
         "Filter dropdown: All | Pending | In Progress | Done",
         "Filter persists in URL params",
-        "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
@@ -226,14 +211,13 @@ Add ability to mark tasks with different statuses.
 
 **Before writing a new prd.json, check if there is an existing one from a different feature:**
 
-1. Read the current `prd.json` if it exists
+1. Read the current `.ralph/prd.json` if it exists
 2. Check if `branchName` differs from the new feature's branch name
-3. If different AND `progress.txt` has content beyond the header:
-   - Create archive folder: `archive/YYYY-MM-DD-feature-name/`
-   - Copy current `prd.json` and `progress.txt` to archive
-   - Reset `progress.txt` with fresh header
+3. If different AND `.ralph/progress.md` has content beyond the header:
+   - Create archive folder: `.ralph/archive/YYYY-MM-DD-feature-name/`
+   - Move current `.ralph/prd.json` and `.ralph/progress.md` to archive
 
-**The ralph.sh script handles this automatically** when you run it, but if you are manually updating prd.json between runs, archive first.
+**The orchestration script handles this automatically** when you run it, but if you are manually updating prd.json between runs, archive first.
 
 ---
 
@@ -244,13 +228,12 @@ Before writing prd.json, verify:
 - [ ] **Previous run archived** (if prd.json exists with different branchName, archive it first)
 - [ ] Each story is completable in one iteration (small enough)
 - [ ] Stories are ordered by dependency (schema to backend to UI)
-- [ ] Every story has "Typecheck passes" as criterion
 - [ ] UI stories have "Verify in browser using dev-browser skill" as criterion
 - [ ] Acceptance criteria are verifiable (not vague)
 - [ ] No story depends on a later story
 
-After successfully writing and validating `prd.json`, end the final response with:
+After successfully writing and validating `.ralph/prd.json`, end the final response with:
 
 ```text
-<!-- ralph:complete path=prd.json -->
+<!-- ralph:complete path=.ralph/prd.json -->
 ```
