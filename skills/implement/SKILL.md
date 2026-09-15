@@ -52,7 +52,7 @@ Do not perform any of the following:
 
 ## Final Response
 
-Briefly report in JSON format:
+Briefly report in JSON format to `.ralph/codex-result.json`:
 
 ```json
 {
@@ -79,4 +79,8 @@ Briefly report in JSON format:
 * **gotchas** are all gotchas encountered during the work, that can occur in subsequent iterations and stories( (e.g., "don't forget to update Z when changing W")
 * **blocker** (optional) If the requirements are contradictory, so you can't implement the story, write the reason to this section. Otherwise leave it empty.
 
-Do not claim that the story passed or is complete. The Ralph orchestrator determines that after running the configured quality checks.
+After successfully writing the file, end the final response with exactly one completion marker containing its actual relative path:
+
+```text
+<!-- ralph:complete path=.ralph/codex-result.json -->
+```

@@ -70,7 +70,7 @@ class Implementor(CodexRunner):
 
     def iteration(self, session: CodexSession, story: Story, iteration_num: int) -> bool:
         ui.horizontal_line()
-        ui.print_md(f"Story: **{story.title}** iteration #{iteration_num}\n\n", INTRO_BRIGHT)
+        ui.print_md(f"Story: **{story.title}** iteration #{iteration_num}", INTRO_BRIGHT)
 
         prompt = (
             "Implement the following user story:\n\n"
@@ -81,7 +81,9 @@ class Implementor(CodexRunner):
             + "\n".join([f" - {ac}" for ac in story.acceptance_criteria])
         )
         response = session.prompt(prompt)
-        result = ExecutionResult.model_validate_json(response.text)
+        if not response.file or not response.file.is_file():
+            raise RalphError("The coding iteration didn't generate a result summary file.")
+        result = ExecutionResult.model_validate_json(response.file.read_text(encoding="utf-8"))
         if result.blocker:
             raise RalphError(f"The story is a blocker: {result.blocker}")
         return self.run_quality_checks()

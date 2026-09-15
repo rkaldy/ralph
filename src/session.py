@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
 
+import typer
 from openai_codex import Codex, InputItem, Sandbox, SkillInput, TextInput, Thread
 from openai_codex.generated.v2_all import (
     AgentMessageDeltaNotification,
@@ -134,6 +135,9 @@ class CodexSession:
                     output.write(payload.delta, type(payload))
                 elif isinstance(payload, CommandExecutionOutputDeltaNotification):
                     waiting.close()
+                    if payload.item_id != last_agent_item_id:
+                        typer.echo()
+                    last_agent_item_id = payload.item_id
                     output.write(payload.delta, type(payload))
                 elif isinstance(payload, TurnCompletedNotification):
                     if payload.turn.status == TurnStatus.failed:
