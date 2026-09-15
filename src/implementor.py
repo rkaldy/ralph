@@ -2,20 +2,28 @@ import subprocess
 from pathlib import Path
 
 import typer
-from openai_codex import CodexError
-from pydantic import ValidationError
 
 import ui
-from codex import CodexSession, RalphError
 from config import RalphConfig
 from models import PRD, ExecutionResult, Story
+from runner import CodexRunner
+from session import CodexSession, RalphError
 from ui import INTRO_BRIGHT
 
 
-class Executor:
+class Implementor(CodexRunner):
     def __init__(self, config: RalphConfig):
-        self.config = config
-        self.ralph_dir = Path.cwd() / ".ralph"
+        super().__init__(
+            config,
+            skill="implement",
+            title="Agentic coding",
+            gpt_model=config.GPT_MODEL_IMPLEMENT,
+            reasoning=config.GPT_REASONING_IMPLEMENT,
+        )
+
+    def delete_qa_results(self) -> None:
+        for qa in ("lint", "typecheck", "test"):
+            (self.ralph_dir / f"{qa}-result.txt").unlink(missing_ok=True)
 
     def run_qa(self, name: str, command: str) -> bool:
         if not command:
@@ -62,16 +70,13 @@ class Executor:
 
     def iteration(self, session: CodexSession, story: Story, iteration_num: int) -> bool:
         ui.horizontal_line()
-        typer.echo(
-            typer.style("Story: ", fg=INTRO_BRIGHT)
-            + typer.style(story.title, fg=INTRO_BRIGHT, bold=True)
-            + typer.style(f"  iteration #{iteration_num}\n\n", fg=INTRO_BRIGHT)
-        )
+        ui.print_md(f"Story: **{story.title}** iteration #{iteration_num}\n\n", INTRO_BRIGHT)
 
         prompt = (
             "Implement the following user story:\n\n"
             + f"{story.title}\n\n"
             + f"Description: {story.description}\n\n"
+            + f"Original PRD for global context: {self.prd.original_prd}\n\n"
             + "Acceptance criteria:\n"
             + "\n".join([f" - {ac}" for ac in story.acceptance_criteria])
         )
@@ -81,39 +86,22 @@ class Executor:
             raise RalphError(f"The story is a blocker: {result.blocker}")
         return self.run_quality_checks()
 
-    def implement_story(self, session: CodexSession, story: Story) -> None:
-        success = False
-        num_iterations = 0
-        for qa in ("lint", "typecheck", "test"):
-            (Path.cwd() / f".ralph/{qa}-result.txt").unlink(missing_ok=True)
-        while not success:
-            num_iterations += 1
-            if num_iterations > self.config.MAX_ITERATIONS:
-                raise RalphError(f"Number of iterations exceeded {self.config.MAX_ITERATIONS}")
-            success = self.iteration(session, story, num_iterations)
-        typer.echo(
-            typer.style("Story: ", fg=INTRO_BRIGHT)
-            + typer.style(story.title, fg=INTRO_BRIGHT, bold=True)
-            + typer.style(" completed", fg=INTRO_BRIGHT)
-        )
+    def prepare(self) -> None:
+        self.prd_file = self.ralph_dir / "prd.json"
+        self.progress_file = self.ralph_dir / "progress.md"
 
-    def run(self) -> None:
-        ui.intro("Agentic coding", self.config.GPT_MODEL_EXECUTION, self.config.GPT_REASONING_EXECUTION)
+        self.prd = PRD.model_validate_json(self.prd_file.read_text(encoding="utf-8"))
+        self.progress_file.write_text("", encoding="utf-8")
 
-        try:
-            prd_file = self.ralph_dir / "prd.json"
-            progress_file = self.ralph_dir / "progress.md"
+    def execute(self, session: CodexSession) -> None:
+        while (story := self.prd.next_story()) is not None:
+            success = False
+            num_iterations = 0
+            self.delete_qa_results()
+            while not success:
+                num_iterations += 1
+                if num_iterations > self.config.MAX_ITERATIONS:
+                    raise RalphError(f"Number of iterations exceeded {self.config.MAX_ITERATIONS}")
+                success = self.iteration(session, story, num_iterations)
 
-            prd = PRD.model_validate_json(prd_file.read_text(encoding="utf-8"))
-            progress_file.write_text("", encoding="utf-8")
-
-            with CodexSession(
-                "execute",
-                model=self.config.GPT_MODEL_EXECUTION,
-                reasoning=self.config.GPT_REASONING_EXECUTION,
-            ) as session:
-                while (story := prd.next_story()) is not None:
-                    self.implement_story(session, story)
-        except (OSError, UnicodeError, ValidationError, CodexError, RalphError) as error:
-            typer.echo(f"Error: {error}", err=True)
-            raise typer.Exit(code=1) from error
+            ui.print_md(f"Story: **{story.title}** completed", INTRO_BRIGHT)

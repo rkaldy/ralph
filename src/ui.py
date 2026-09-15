@@ -1,9 +1,7 @@
-import contextlib
 import shutil
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
-from pathlib import Path
 from threading import Event, Thread
 
 import typer
@@ -20,12 +18,30 @@ SPINNER_FRAMES = ("⢹", "⣸", "⣴", "⣦", "⣇", "⡏", "⠟", "⠻")
 SPINNER_INTERVAL = 0.08
 SPINNER_LABEL = ""
 
+type Color = int | tuple[int, int, int] | str | None
 
-def intro(mode: str, gpt_model: str | None, reasoning: str | None) -> None:
+
+def print_md(text: str, color: Color) -> None:
+    """Print text with sections enclosed by double asterisks in bold."""
+    rendered: list[str] = []
+    position = 0
+    delimiter = "**"
+
+    while (opening := text.find(delimiter, position)) >= 0:
+        closing = text.find(delimiter, opening + len(delimiter))
+        if closing < 0:
+            break
+
+        rendered.append(typer.style(text[position:opening], fg=color))
+        rendered.append(typer.style(text[opening + len(delimiter) : closing], fg=color, bold=True))
+        position = closing + len(delimiter)
+
+    rendered.append(typer.style(text[position:], fg=color))
+    typer.echo("".join(rendered))
+
+
+def intro(mode: str, gpt_model: str | None, reasoning: str | None, directory: str) -> None:
     """Print the -framed heading for a design session."""
-    directory = Path.cwd()
-    with contextlib.suppress(BaseException):
-        directory = Path("~") / directory.relative_to(Path.home())
 
     title_row = f"Ralph {mode}"
     model_row = f"model: {gpt_model} {reasoning}"

@@ -1,7 +1,7 @@
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from codex import CodexSession
+from session import CodexSession
 
 
 class RalphConfig(BaseSettings):
@@ -22,33 +22,31 @@ class RalphConfig(BaseSettings):
 
     GPT_MODEL_DESIGN: str | None = None
     GPT_REASONING_DESIGN: str | None = None
-    GPT_MODEL_EXECUTION: str | None = None
-    GPT_REASONING_EXECUTION: str | None = None
+    GPT_MODEL_IMPLEMENT: str | None = None
+    GPT_REASONING_IMPLEMENT: str | None = None
 
     @field_validator(
         "GPT_MODEL_DESIGN",
         "GPT_REASONING_DESIGN",
-        "GPT_MODEL_EXECUTION",
-        "GPT_REASONING_EXECUTION",
+        "GPT_MODEL_IMPLEMENT",
+        "GPT_REASONING_IMPLEMENT",
         mode="before",
     )
     @classmethod
     def empty_gpt_setting_as_none(cls, value: object) -> object:
-        """Treat an empty INI value as an unset GPT option."""
         return None if value == "" else value
 
     @model_validator(mode="after")
     def apply_codex_defaults(self) -> "RalphConfig":
-        """Use the system Codex model settings for unset GPT options."""
         model, reasoning = CodexSession.model_settings()
 
         if self.GPT_MODEL_DESIGN is None:
             self.GPT_MODEL_DESIGN = model
         if self.GPT_REASONING_DESIGN is None:
             self.GPT_REASONING_DESIGN = reasoning
-        if self.GPT_MODEL_EXECUTION is None:
-            self.GPT_MODEL_EXECUTION = model
-        if self.GPT_REASONING_EXECUTION is None:
-            self.GPT_REASONING_EXECUTION = reasoning
+        if self.GPT_MODEL_IMPLEMENT is None:
+            self.GPT_MODEL_IMPLEMENT = model
+        if self.GPT_REASONING_IMPLEMENT is None:
+            self.GPT_REASONING_IMPLEMENT = reasoning
 
         return self

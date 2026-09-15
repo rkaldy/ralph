@@ -1,6 +1,6 @@
 ---
-name: "execute"
-description: "Implement one user story. Use in execution phase. Triggers on: implement an user story."
+name: "implement"
+description: "Implement or repair one Ralph user story selected by the orchestrator from `.ralph/prd.json`, including follow-up iterations for lint, typecheck, or test failures."
 ---
 
 # Ralph Story Implementation
@@ -10,9 +10,11 @@ Implement the single user story identified in the current prompt. Keep the chang
 ## Context
 
 - Follow all applicable `AGENTS.md` instructions in the workspace.
-- Read the selected story in `prd.json` for its complete requirements and acceptance criteria.
-- Read all the **Codebase Patterns** and **Gotchas encountered** sections in `progress.md`, if the file exists, before making changes.
+- Read the selected story in `.ralph/prd.json` for its complete requirements and acceptance criteria.
+- Read all the **Codebase Patterns** and **Gotchas encountered** sections in `.ralph/progress.md`, if the file exists, before making changes.
 - Inspect the relevant code and follow established project patterns.
+- Use the original PRD only for global requirements, non-goals, technical constraints, terminology, and dependencies relevant to the selected story.
+- Other stories in the original PRD are context, not additional implementation scope.
 
 If the requested story cannot be found or its requirements are contradictory, report the blocker instead of selecting or implementing a different story.
 
@@ -45,7 +47,7 @@ Do not perform any of the following:
 - Select another story or decide that the overall PRD is complete.
 - Create, switch, or otherwise manage Git branches.
 - Stage changes or create Git commits.
-- Make any changes in `prd.json` or `progress.md`
+- Make any changes in `.ralph/prd.json` or `.ralph/progress.md`
 - Treat checks run during this turn as the final project quality gate.
 
 ## Final Response

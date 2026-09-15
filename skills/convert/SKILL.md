@@ -20,6 +20,7 @@ Take a PRD (markdown file or text) and convert it to `.ralph/prd.json` in the cu
 ```json
 {
   "branchName": "ralph/[feature-name-kebab-case]",
+  "sourcePRD": "[original PRD filename]",
   "description": "[Feature description from PRD title/intro]",
   "userStories": [
     {
@@ -151,6 +152,7 @@ Add ability to mark tasks with different statuses.
 ```json
 {
   "branchName": "ralph/task-status",
+  "sourcePRD": "task-status.md",
   "description": "Task Status Feature - Track task progress with status indicators",
   "userStories": [
     {
@@ -205,34 +207,17 @@ Add ability to mark tasks with different statuses.
 }
 ```
 
----
-
-## Archiving Previous Runs
-
-**Before writing a new prd.json, check if there is an existing one from a different feature:**
-
-1. Read the current `.ralph/prd.json` if it exists
-2. Check if `branchName` differs from the new feature's branch name
-3. If different AND `.ralph/progress.md` has content beyond the header:
-   - Create archive folder: `.ralph/archive/YYYY-MM-DD-feature-name/`
-   - Move current `.ralph/prd.json` and `.ralph/progress.md` to archive
-
-**The orchestration script handles this automatically** when you run it, but if you are manually updating prd.json between runs, archive first.
-
----
-
 ## Checklist Before Saving
 
 Before writing `.ralph/prd.json`, verify:
 
-- [ ] **Previous run archived** (if `.ralph/prd.json` exists with different branchName, archive it first)
 - [ ] Each story is completable in one iteration (small enough)
 - [ ] Stories are ordered by dependency (schema to backend to UI)
 - [ ] UI stories have "Verify in browser using dev-browser skill" as criterion
 - [ ] Acceptance criteria are verifiable (not vague)
 - [ ] No story depends on a later story
 
-After successfully writing and validating `.ralph/prd.json` OR if you successfully validate the existing `.ralph/prd.json`, end the final response with:
+After successfully writing and validating `.ralph/prd.json`, end the final response with:
 
 ```text
 <!-- ralph:complete path=.ralph/prd.json -->

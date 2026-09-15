@@ -4,8 +4,9 @@ from typing import Annotated
 import typer
 
 from config import RalphConfig
+from converter import Converter
 from designer import Designer
-from executor import Executor
+from implementor import Implementor
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -21,8 +22,8 @@ def design(
     feature: Annotated[str, typer.Argument(help="Simple, high-level feature description")],
 ) -> None:
     "Run design phase and create a PRD"
-    designer = Designer(ctx.obj)
-    designer.design(feature)
+    designer = Designer(ctx.obj, feature)
+    designer.run()
 
 
 @app.command()
@@ -40,17 +41,17 @@ def convert(
     ],
 ) -> None:
     "Convert Markdown PRD to `prd.json` and split it to stories, implementable by single Codex turn"
-    designer = Designer(ctx.obj)
-    designer.convert(prd)
+    converter = Converter(ctx.obj, prd)
+    converter.run()
 
 
 @app.command()
-def execute(
+def implement(
     ctx: typer.Context,
 ) -> None:
     "Implement the feature using `prd.json`"
-    executor = Executor(ctx.obj)
-    executor.run()
+    implementor = Implementor(ctx.obj)
+    implementor.run()
 
 
 def main() -> None:
