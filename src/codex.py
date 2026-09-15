@@ -121,15 +121,20 @@ class CodexSession:
 
         turn = self.thread.turn(input)
         output = CodexStreamOutput()
+        last_agent_item_id: str | None = None
 
         waiting = ExitStack()
         waiting.enter_context(ui.codex_spinner())
         try:
             for event in turn.stream():
                 payload = event.payload
-                if isinstance(
-                    payload, (AgentMessageDeltaNotification, CommandExecutionOutputDeltaNotification)
-                ):
+                if isinstance(payload, AgentMessageDeltaNotification):
+                    waiting.close()
+                    if payload.item_id != last_agent_item_id:
+                        output.write_separator()
+                    last_agent_item_id = payload.item_id
+                    output.write(payload.delta, type(payload))
+                elif isinstance(payload, CommandExecutionOutputDeltaNotification):
                     waiting.close()
                     output.write(payload.delta, type(payload))
                 elif isinstance(payload, TurnCompletedNotification):

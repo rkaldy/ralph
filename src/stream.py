@@ -2,8 +2,7 @@ import typer
 from openai_codex.generated.v2_all import AgentMessageDeltaNotification
 from pydantic import BaseModel
 
-CODEX_OUTPUT_COLOR = typer.colors.BRIGHT_WHITE
-COMMAND_OUTPUT_COLOR = (224, 255, 224)
+from ui import CODEX_OUTPUT, COMMAND_OUTPUT, INTRO_DARK
 
 
 class CodexStreamOutput:
@@ -18,6 +17,7 @@ class CodexStreamOutput:
         self.pending_output = ""
         self.completion_marker_started = False
         self.payload_type: type[BaseModel] | None = None
+        self.at_line_start = True
 
     def write(self, text: str, payload_type: type[BaseModel]) -> None:
         """Store a response delta and write its user-visible part."""
@@ -56,11 +56,7 @@ class CodexStreamOutput:
         def flush() -> None:
             if not segment:
                 return
-            color = (
-                CODEX_OUTPUT_COLOR
-                if self.payload_type is AgentMessageDeltaNotification
-                else COMMAND_OUTPUT_COLOR
-            )
+            color = CODEX_OUTPUT if self.payload_type is AgentMessageDeltaNotification else COMMAND_OUTPUT
             rendered.append(typer.style("".join(segment), fg=color, bold=self.bold))
             segment.clear()
 
@@ -82,6 +78,14 @@ class CodexStreamOutput:
         flush()
         if rendered:
             typer.echo("".join(rendered), nl=False)
+            self.at_line_start = text.endswith("\n")
+
+    def write_separator(self) -> None:
+        """Draw a separator between consecutive Codex message items."""
+        if not self.at_line_start:
+            typer.echo()
+        typer.echo(typer.style("\n• ", fg=INTRO_DARK, bold=True), nl=False)
+        self.at_line_start = True
 
     def finish(self) -> None:
         """Flush pending text and finish the streamed output line."""
@@ -90,11 +94,7 @@ class CodexStreamOutput:
         self.pending_output = ""
 
         if self.pending_star:
-            color = (
-                CODEX_OUTPUT_COLOR
-                if self.payload_type is AgentMessageDeltaNotification
-                else COMMAND_OUTPUT_COLOR
-            )
+            color = CODEX_OUTPUT if self.payload_type is AgentMessageDeltaNotification else COMMAND_OUTPUT
             typer.echo(
                 typer.style("*", fg=color, bold=self.bold),
                 nl=False,

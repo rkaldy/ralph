@@ -8,13 +8,13 @@ from threading import Event, Thread
 
 import typer
 
-from codex import CodexSession
-from stream import CODEX_OUTPUT_COLOR
-
 INTRO_BRIGHT = (255, 232, 200)
 INTRO_DARK = (128, 120, 112)
 USER_BACKGROUND = (32, 32, 32)
 USER_FOREGROUND = typer.colors.BRIGHT_WHITE
+CODEX_OUTPUT = typer.colors.BRIGHT_WHITE
+COMMAND_OUTPUT = (224, 255, 224)
+
 SPINNER_FRAMES = ("⢹", "⣸", "⣴", "⣦", "⣇", "⡏", "⠟", "⠻")
 SPINNER_INTERVAL = 0.08
 SPINNER_LABEL = ""
@@ -22,11 +22,6 @@ SPINNER_LABEL = ""
 
 def intro(mode: str, gpt_model: str | None, reasoning: str | None) -> None:
     """Print the -framed heading for a design session."""
-
-    default_gpt_model, default_reasoning = CodexSession.model_settings()
-    gpt_model = gpt_model or default_gpt_model
-    reasoning = reasoning or default_reasoning
-
     directory = Path.cwd()
     with contextlib.suppress(BaseException):
         directory = Path("~") / directory.relative_to(Path.home())
@@ -108,7 +103,7 @@ def codex_spinner() -> Iterator[None]:
         frame_index = 0
         while not stopped.is_set():
             frame = SPINNER_FRAMES[frame_index % len(SPINNER_FRAMES)]
-            message = typer.style(f"{frame} {SPINNER_LABEL}", fg=CODEX_OUTPUT_COLOR)
+            message = typer.style(f"{frame} {SPINNER_LABEL}", fg=CODEX_OUTPUT)
             typer.echo(f"\r{message}", nl=False)
             frame_index += 1
             stopped.wait(SPINNER_INTERVAL)

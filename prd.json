@@ -1,6 +1,6 @@
 {
   "project": "Ralph",
-  "branchName": "ralph/add-more-ruff-checks",
+  "branchName": "ralph/add-more-ruff-checks-old",
   "description": "Expand the repository's Ruff configuration to the stable ALL preset, resolve the resulting findings without changing runtime behavior, and preserve the existing local auto-fixing workflow.",
   "userStories": [
     {

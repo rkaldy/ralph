@@ -5,7 +5,7 @@ from typing import Annotated
 
 import typer
 from openai_codex import CodexError
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 import ui
@@ -44,6 +44,22 @@ class RalphConfig(BaseSettings):
     def empty_gpt_setting_as_none(cls, value: object) -> object:
         """Treat an empty INI value as an unset GPT option."""
         return None if value == "" else value
+
+    @model_validator(mode="after")
+    def apply_codex_defaults(self) -> "RalphConfig":
+        """Use the system Codex model settings for unset GPT options."""
+        model, reasoning = CodexSession.model_settings()
+
+        if self.GPT_MODEL_DESIGN is None:
+            self.GPT_MODEL_DESIGN = model
+        if self.GPT_REASONING_DESIGN is None:
+            self.GPT_REASONING_DESIGN = reasoning
+        if self.GPT_MODEL_EXECUTION is None:
+            self.GPT_MODEL_EXECUTION = model
+        if self.GPT_REASONING_EXECUTION is None:
+            self.GPT_REASONING_EXECUTION = reasoning
+
+        return self
 
 
 @app.callback()
@@ -105,16 +121,16 @@ def convert(
 ) -> None:
     "Convert Markdown PRD to `prd.json` and split it to stories, implementable by single Codex turn"
     config: RalphConfig = ctx.obj
-    default_gpt_model, default_reasoning = CodexSession.model_settings()
     ui.intro(
         "PRD conversion",
-        config.GPT_MODEL_DESIGN or default_gpt_model,
-        config.GPT_REASONING_DESIGN or default_reasoning,
+        config.GPT_MODEL_DESIGN,
+        config.GPT_REASONING_DESIGN,
     )
 
     output_path = Path.cwd() / "prd.json"
     try:
-        with CodexSession("convert",
+        with CodexSession(
+            "convert",
             model=config.GPT_MODEL_DESIGN,
             reasoning=config.GPT_REASONING_DESIGN,
         ) as session:
