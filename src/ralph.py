@@ -33,7 +33,7 @@ def load_config(ctx: typer.Context) -> None:
 
 @app.command()
 def design(feature: str) -> None:
-    typer.secho("=== Ralph Project Requirement Description session===", bold=True)
+    ui.intro("Project Requirement Description session")
 
     try:
         with CodexSession("prd") as session:

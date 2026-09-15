@@ -2,8 +2,8 @@ import typer
 from openai_codex.generated.v2_all import AgentMessageDeltaNotification
 from pydantic import BaseModel
 
-CODEX_OUTPUT_COLOR = (224, 255, 224)
-COMMAND_OUTPUT_COLOR = typer.colors.WHITE
+CODEX_OUTPUT_COLOR = typer.colors.BRIGHT_WHITE
+COMMAND_OUTPUT_COLOR = (224, 255, 224)
 
 
 class CodexStreamOutput:
@@ -100,7 +100,7 @@ class CodexStreamOutput:
                 nl=False,
             )
             self.pending_star = False
-        typer.echo()
+        typer.echo("\n")
 
     @property
     def result(self) -> str:
