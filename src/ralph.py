@@ -33,23 +33,20 @@ def load_config(ctx: typer.Context) -> None:
 
 @app.command()
 def design(feature: str) -> None:
-    typer.echo(ui.format_codex_response("**RALPH** Project Requirement Description session"))
+    typer.secho("=== Ralph Project Requirement Description session===", bold=True)
 
     try:
         with CodexSession("prd") as session:
-            with ui.codex_spinner():
-                response = session.prompt(
-                    f"Make an interactive user session for creating a PRD for this feature: {feature}"
-                )
+            response = session.prompt(
+                f"Make an interactive user session for creating a PRD for this feature: {feature}"
+            )
             while True:
-                typer.echo(ui.format_codex_response(response.text))
                 if response.completed:
                     typer.echo(f"\n\nPRD: {response.file}")
                     return
 
                 answer = ui.prompt_user()
-                with ui.codex_spinner():
-                    response = session.prompt(answer)
+                response = session.prompt(answer)
 
     except (CodexError, CodexException) as error:
         typer.echo(f"Error: {error}", err=True)

@@ -1,10 +1,20 @@
 import re
 import sys
+from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
 
 from openai_codex import Codex, InputItem, Sandbox, SkillInput, TextInput, Thread
+from openai_codex.generated.v2_all import (
+    AgentMessageDeltaNotification,
+    CommandExecutionOutputDeltaNotification,
+    TurnCompletedNotification,
+    TurnStatus,
+)
+
+import ui
+from stream import CodexStreamOutput
 
 COMPLETION_PATTERN = re.compile(r"<!-- ralph:complete path=(?P<path>.+?) -->")
 
@@ -51,19 +61,8 @@ class CodexSession:
     ) -> None:
         self.codex.__exit__(exc_type, exc_val, exc_tb)
 
-    def prompt(self, prompt: str) -> CodexResponse:
+    def _build_response(self, result: str) -> CodexResponse:
         cwd = Path.cwd()
-
-        input: list[InputItem] = [TextInput(text=prompt)]
-        if self.first:
-            self.first = False
-            input.append(SkillInput(name=self.skill, path=str(self.skill_path())))
-        if self.thread is None:
-            raise CodexException("Codex session is not started")
-
-        result = self.thread.run(input).final_response
-        if not result:
-            raise CodexException("Codex returned an empty response")
 
         completion = COMPLETION_PATTERN.search(result)
         response = CodexResponse(
@@ -84,3 +83,36 @@ class CodexSession:
                     ) from error
 
         return response
+
+    def prompt(self, prompt: str) -> CodexResponse:
+        input: list[InputItem] = [TextInput(text=prompt)]
+        if self.first:
+            self.first = False
+            input.append(SkillInput(name=self.skill, path=str(self.skill_path())))
+        if self.thread is None:
+            raise CodexException("Codex session is not started")
+
+        turn = self.thread.turn(input)
+        output = CodexStreamOutput()
+
+        waiting = ExitStack()
+        waiting.enter_context(ui.codex_spinner())
+        try:
+            for event in turn.stream():
+                payload = event.payload
+                if isinstance(
+                    payload, (AgentMessageDeltaNotification, CommandExecutionOutputDeltaNotification)
+                ):
+                    waiting.close()
+                    output.write(payload.delta, type(payload))
+                elif isinstance(payload, TurnCompletedNotification):
+                    if payload.turn.status == TurnStatus.failed:
+                        raise CodexException(payload.turn.error)
+        finally:
+            waiting.close()
+            output.finish()
+
+        result = output.result
+        if not result:
+            raise CodexException("Codex returned an empty response")
+        return self._build_response(result)
