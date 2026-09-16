@@ -6,6 +6,8 @@ from threading import Event, Thread
 
 import typer
 
+from exceptions import RalphError
+
 INTRO_BRIGHT = (255, 232, 200)
 INTRO_DARK = (128, 120, 112)
 USER_BACKGROUND = (32, 32, 32)
@@ -102,6 +104,8 @@ def prompt_user() -> str:
     )
     try:
         return input()
+    except EOFError:
+        raise RalphError("Interrupted")
     finally:
         typer.echo(typer.style("", reset=True), nl=False)
         typer.echo()

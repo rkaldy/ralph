@@ -34,9 +34,5 @@ class PRD(BaseModel):
         )
 
 
-class ExecutionResult(BaseModel):
-    description: str
-    files: list[str]
-    patterns: list[str]
-    gotchas: list[str]
-    blocker: str | None = None
+class CodexResultBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")

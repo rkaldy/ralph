@@ -142,15 +142,10 @@ replace spaces and punctuation with single hyphens, and remove leading or
 trailing hyphens. For example, `Task Priority System` becomes
 `task-priority-system`.
 
-After successfully writing the file, end the final response with exactly one
-completion marker containing its actual relative path:
-
+After successfully creating the file, write a final response with exact text:
 ```text
-<!-- ralph:complete path=.ralph/tasks/prd-[feature-name].md -->
+<COMPLETE>
 ```
-
-Replace `[feature-name]` with the selected name. Do not emit the marker before
-the file exists, and do not put the marker inside a Markdown code block.
 
 ---
 

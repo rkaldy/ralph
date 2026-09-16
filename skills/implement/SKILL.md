@@ -50,37 +50,13 @@ Do not perform any of the following:
 - Make any changes in `.ralph/prd.json` or `.ralph/progress.md`
 - Treat checks run during this turn as the final project quality gate.
 
-## Final Response
+## Final Result
 
-Briefly report in JSON format to `.ralph/codex-result.json`:
+Return the implementation summary through the structured result supplied by
+the orchestrator. Do not write a separate result file.
 
-```json
-{
-  "description": "what was implemented",
-  "files": [
-    "file1",
-    "file2"
-  ],
-  "patterns": [
-    "pattern1",
-    "pattern2"
-  ],
-  "gotchas": [
-    "gotcha1",
-    "gotcha2"
-  ],
-  "blocker": "blocker descrption"
-}
-```
-
-* **description** is a brief explanation what you have just implemented
-* **files** is a list of all files you have changed
-* **patterns** are knowledge points you have discovered during the work  (e.g., "this codebase uses X for Y")
-* **gotchas** are all gotchas encountered during the work, that can occur in subsequent iterations and stories( (e.g., "don't forget to update Z when changing W")
-* **blocker** (optional) If the requirements are contradictory, so you can't implement the story, write the reason to this section. Otherwise leave it empty.
-
-After successfully writing the file, end the final response with exactly one completion marker containing its actual relative path:
-
-```text
-<!-- ralph:complete path=.ralph/codex-result.json -->
-```
+- `description` briefly explains what was implemented.
+- `files` lists every changed file.
+- `patterns` contains reusable codebase knowledge discovered during the work.
+- `gotchas` contains pitfalls relevant to later iterations or stories.
+- `blocker` contains the reason the story cannot be implemented safely; otherwise leave it null.

@@ -1,5 +1,6 @@
 import contextlib
 from pathlib import Path
+from pprint import pprint
 
 import typer
 
@@ -14,22 +15,24 @@ class CodexRunner:
     ) -> None:
         self.config = config
         self.skill = skill
-        self.ralph_dir = Path.cwd() / ".ralph"
+        self.ralph_dir = Path(".ralph")
+        self.ralph_dir.mkdir(exist_ok=True)
         self.title = title
         self.gpt_model = gpt_model
         self.reasoning = reasoning
 
     def run(self) -> None:
-        directory = Path.cwd()
+        cwd = Path.cwd()
         with contextlib.suppress(BaseException):
-            directory = Path("~") / directory.relative_to(Path.home())
-        ui.intro(self.title, self.gpt_model, self.reasoning, str(directory))
+            cwd = Path("~") / cwd.relative_to(Path.home())
+        ui.intro(self.title, self.gpt_model, self.reasoning, str(cwd))
 
         try:
             self.prepare()
             with CodexSession(skill=self.skill, model=self.gpt_model, reasoning=self.reasoning) as session:
                 self.execute(session)
         except Exception as error:
+            pprint(error)
             typer.secho(f"Error: {error}", err=True, fg=typer.colors.BRIGHT_RED)
             raise typer.Exit(code=1) from error
 

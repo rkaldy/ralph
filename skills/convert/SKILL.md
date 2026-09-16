@@ -39,6 +39,10 @@ Take a PRD (markdown file or text) and convert it to `.ralph/prd.json` in the cu
 }
 ```
 
+After successfully writing and validating `.ralph/prd.json`, set the
+orchestrator-provided `prdFile` result field to its relative path. Do not set it
+before the file exists.
+
 ---
 
 ## Story Size: The Number One Rule
@@ -216,9 +220,3 @@ Before writing `.ralph/prd.json`, verify:
 - [ ] UI stories have "Verify in browser using dev-browser skill" as criterion
 - [ ] Acceptance criteria are verifiable (not vague)
 - [ ] No story depends on a later story
-
-After successfully writing and validating `.ralph/prd.json`, end the final response with:
-
-```text
-<!-- ralph:complete path=.ralph/prd.json -->
-```

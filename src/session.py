@@ -1,36 +1,38 @@
-import re
 import sys
 import tomllib
-from contextlib import ExitStack
-from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
 
 import typer
-from openai_codex import Codex, InputItem, Sandbox, SkillInput, TextInput, Thread
+from openai_codex import Codex, Sandbox, SkillInput, TextInput, Thread
 from openai_codex.generated.v2_all import (
     AgentMessageDeltaNotification,
+    AgentMessageThreadItem,
     CommandExecutionOutputDeltaNotification,
+    ItemCompletedNotification,
+    ItemStartedNotification,
+    MessagePhase,
     TurnCompletedNotification,
     TurnStatus,
 )
+from pydantic import BaseModel, ValidationError
 
-import ui
+from exceptions import RalphError
 from stream import CodexStreamOutput
 
 CODEX_CONFIG_PATH = Path.home() / ".codex/config.toml"
-COMPLETION_PATTERN = re.compile(r"<!-- ralph:complete path=(?P<path>.+?) -->")
 
-
-@dataclass
-class CodexResponse:
-    text: str
-    completed: bool
-    file: Path | None = None
-
-
-class RalphError(Exception):
-    pass
+COMPLETE_MARKER = "<COMPLETE>"
+SUMMARY_PROMPT = """
+Report the outcome of the thread using the supplied output schema.
+This is a read-only reporting turn:
+  - Do not continue or redo the work.
+  - Do not modify files or execute commands.
+  - Report only actions, results, and artifacts actually produced by this thread.
+  - Do not infer success from plans, intentions, or expected output paths.
+  - Use null or empty collections when optional information is unavailable.
+  - Return no user-facing explanation; the result is consumed by the orchestrator.
+"""
 
 
 class CodexSession:
@@ -45,7 +47,6 @@ class CodexSession:
         self.skill = skill
         self.model = model or None
         self.reasoning = reasoning or None
-        self.first = True
 
     def __enter__(self) -> "CodexSession":
         self.codex.__enter__()
@@ -89,63 +90,59 @@ class CodexSession:
                 return path.resolve()
         raise RalphError(f"'{self.skill}' skill is not installed")
 
-    def _build_response(self, result: str) -> CodexResponse:
-        cwd = Path.cwd()
-
-        completion = COMPLETION_PATTERN.search(result)
-        response = CodexResponse(
-            text=COMPLETION_PATTERN.sub("", result).strip(),
-            completed=completion is not None,
-        )
-        if completion:
-            response.file = Path(completion.group("path"))
-            if response.file:
-                absolute_path = (cwd / response.file).resolve()
-                if not absolute_path.is_file():
-                    raise RalphError(f"Codex did not create {response.file}")
-                try:
-                    absolute_path.relative_to(cwd.resolve())
-                except ValueError as error:
-                    raise RalphError(f"Codex returned a path outside the project: {response.file}") from error
-
-        return response
-
-    def prompt(self, prompt: str) -> CodexResponse:
+    def prompt(self, prompt: str) -> bool:
         if self.thread is None:
             raise RalphError("Codex session is not started")
 
-        turn = self.thread.turn([
-            TextInput(text=f"${self.skill} {prompt}"),
-            SkillInput(name=self.skill, path=str(self._skill_path()))
-        ])
+        turn = self.thread.turn(
+            [TextInput(text=prompt), SkillInput(name=self.skill, path=str(self._skill_path()))],
+        )
+
+        complete: bool = False
+        hidden_items: set[str] = set()
         output = CodexStreamOutput()
-        last_agent_item_id: str | None = None
+        for event in turn.stream():
+            payload = event.payload
+            if isinstance(payload, ItemStartedNotification):
+                item = payload.item.root
+                if isinstance(item, AgentMessageThreadItem):
+                    if item.phase == MessagePhase.final_answer:
+                        hidden_items.add(item.id)
+                    else:
+                        typer.echo("• ", nl=False)
+            elif isinstance(payload, AgentMessageDeltaNotification):
+                if payload.item_id not in hidden_items:
+                    output.write(payload.delta, AgentMessageDeltaNotification)
+            elif isinstance(payload, CommandExecutionOutputDeltaNotification):
+                output.write(payload.delta, CommandExecutionOutputDeltaNotification)
+            elif isinstance(payload, ItemCompletedNotification):
+                item = payload.item.root
+                if isinstance(item, AgentMessageThreadItem):
+                    if item.phase == MessagePhase.final_answer:
+                        if COMPLETE_MARKER in item.text:
+                            complete = True
+                        else:
+                            output.write(item.text, AgentMessageDeltaNotification)
+                    typer.echo("\n")
+            elif isinstance(payload, TurnCompletedNotification):
+                if payload.turn.status == TurnStatus.interrupted:
+                    raise RalphError("Interrupted")
+                elif payload.turn.status == TurnStatus.failed:
+                    raise RalphError(payload.turn.error)
 
-        waiting = ExitStack()
-        waiting.enter_context(ui.codex_spinner())
+        return complete
+
+    def summary[ResponseT: BaseModel](self, response_model: type[ResponseT]) -> ResponseT:
+        if self.thread is None:
+            raise RalphError("Codex session is not started")
+
+        result = self.thread.run(
+            [TextInput(text=SUMMARY_PROMPT), SkillInput(name=self.skill, path=str(self._skill_path()))],
+            output_schema=response_model.model_json_schema(),
+        )
+        if result.status == TurnStatus.failed or not result.final_response:
+            raise RalphError(result.error)
         try:
-            for event in turn.stream():
-                payload = event.payload
-                if isinstance(payload, AgentMessageDeltaNotification):
-                    waiting.close()
-                    if payload.item_id != last_agent_item_id:
-                        output.write_separator()
-                    last_agent_item_id = payload.item_id
-                    output.write(payload.delta, type(payload))
-                elif isinstance(payload, CommandExecutionOutputDeltaNotification):
-                    waiting.close()
-                    if payload.item_id != last_agent_item_id:
-                        typer.echo()
-                    last_agent_item_id = payload.item_id
-                    output.write(payload.delta, type(payload))
-                elif isinstance(payload, TurnCompletedNotification):
-                    if payload.turn.status == TurnStatus.failed:
-                        raise RalphError(payload.turn.error)
-        finally:
-            waiting.close()
-            output.finish()
-
-        result = output.result
-        if not result:
-            raise RalphError("Codex returned an empty response")
-        return self._build_response(result)
+            return response_model.model_validate_json(result.final_response)
+        except ValidationError as error:
+            raise RalphError(f"Codex returned an invalid structured response: {error}") from error

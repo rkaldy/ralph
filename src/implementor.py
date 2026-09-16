@@ -2,13 +2,25 @@ import subprocess
 from pathlib import Path
 
 import typer
+from pydantic import Field
 
 import ui
 from config import RalphConfig
-from models import PRD, ExecutionResult, Story
+from models import PRD, CodexResultBase, Story
 from runner import CodexRunner
-from session import CodexSession, RalphError
+from session import CodexSession
+from exceptions import RalphError
 from ui import INTRO_BRIGHT
+
+
+class ExecutionResult(CodexResultBase):
+    description: str = Field(description="Briefly explains what was implemented")
+    files: list[str] = Field(description="Lists every changed file")
+    patterns: list[str] = Field(description="Contains reusable codebase knowledge discovered during the work")
+    gotchas: list[str] = Field(description="Contains pitfalls relevant to later iterations or stories")
+    blocker: str | None = Field(
+        description="Contains the reason the story cannot be implemented safely; otherwise leave it None"
+    )
 
 
 class Implementor(CodexRunner):
@@ -80,12 +92,10 @@ class Implementor(CodexRunner):
             + "Acceptance criteria:\n"
             + "\n".join([f" - {ac}" for ac in story.acceptance_criteria])
         )
-        response = session.prompt(prompt)
-        if not response.file or not response.file.is_file():
-            raise RalphError("The coding iteration didn't generate a result summary file.")
-        result = ExecutionResult.model_validate_json(response.file.read_text(encoding="utf-8"))
-        if result.blocker:
-            raise RalphError(f"The story is a blocker: {result.blocker}")
+        session.prompt(prompt)
+        summary = session.summary(ExecutionResult)
+        if summary.blocker:
+            raise RalphError(f"The story is a blocker: {summary.blocker}")
         return self.run_quality_checks()
 
     def prepare(self) -> None:
