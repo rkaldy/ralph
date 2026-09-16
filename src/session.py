@@ -111,14 +111,13 @@ class CodexSession:
         return response
 
     def prompt(self, prompt: str) -> CodexResponse:
-        input: list[InputItem] = [TextInput(text=prompt)]
-        if self.first:
-            self.first = False
-            input.append(SkillInput(name=self.skill, path=str(self._skill_path())))
         if self.thread is None:
             raise RalphError("Codex session is not started")
 
-        turn = self.thread.turn(input)
+        turn = self.thread.turn([
+            TextInput(text=f"${self.skill} {prompt}"),
+            SkillInput(name=self.skill, path=str(self._skill_path()))
+        ])
         output = CodexStreamOutput()
         last_agent_item_id: str | None = None
 

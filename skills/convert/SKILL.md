@@ -1,6 +1,6 @@
 ---
 name: convert
-description: "Convert PRDs to JSON format for the Ralph autonomous agent system. Use when you have an existing PRD and need to convert it to Ralph's JSON format. Triggers on: convert this prd, turn this into ralph format, create `.ralph/prd.json` from this."
+description: "Convert PRDs to JSON format for the Ralph autonomous agent system. Use when you have an existing PRD and need to convert it to Ralph's JSON format."
 ---
 
 # Ralph PRD Converter
