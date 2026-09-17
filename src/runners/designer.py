@@ -1,7 +1,6 @@
 from pydantic import Field
 
 import ui
-from codex import CodexSession
 from config import RalphConfig
 from exceptions import RalphError
 from models import CodexResultBase
@@ -25,15 +24,16 @@ class Designer(CodexRunner):
         )
         self.feature = feature
 
-    def execute(self, session: CodexSession) -> None:
-        complete = session.prompt(
+    def execute(self) -> None:
+        self.session.start_thread()
+        complete = self.session.prompt(
             f"Make an interactive user session for creating a PRD for this feature: {self.feature}",
         )
         while not complete:
             answer = ui.prompt_user()
-            complete = session.prompt(answer)
+            complete = self.session.prompt(answer)
 
-        summary = session.summary(DesignResult)
+        summary = self.session.summary(DesignResult)
         prd_file = self.ralph_dir / f"tasks/{summary.prd_file}"
         if not prd_file.is_file():
             raise RalphError(f"Codex did not create {prd_file}")

@@ -7,7 +7,6 @@ from pydantic import Field
 from rich.markdown import Markdown
 
 import ui
-from codex import CodexSession
 from config import RalphConfig
 from exceptions import RalphError
 from models import PRD, CodexResultBase, Story
@@ -79,11 +78,7 @@ class Programmer(CodexRunner):
         return return_code == 0
 
     def run_quality_checks(self) -> bool:
-        results = [
-            self.run_qa(name.value, command)
-            for name, command in self.qa_commands.items()
-            if command is not None
-        ]
+        results = [self.run_qa(name.value, command) for name, command in self.qa_commands.items() if command]
         return all(results)
 
     def build_prompt(self, story: Story, iteration_num: int) -> str:
@@ -115,7 +110,7 @@ class Programmer(CodexRunner):
         with self.progress_file.open("a", encoding="utf-8") as progress:
             progress.write(summary)
 
-    def do_iteration(self, session: CodexSession, story: Story, iteration_num: int) -> bool:
+    def do_iteration(self, story: Story, iteration_num: int) -> bool:
         ui.horizontal_line()
         ui.console.print(
             f"Story: [bold]{story.title}[/bold]  iteration: [bold]{iteration_num}[/bold]\n",
@@ -124,35 +119,30 @@ class Programmer(CodexRunner):
 
         prompt = self.build_prompt(story, iteration_num)
         ui.console.print(f"[bold]Prompt:[/bold]\n{prompt}\n", style="prompt")
-        if not session.prompt(prompt):
-            raise RalphError("The story is a blocker")
+        self.session.prompt(prompt)
+
         return self.run_quality_checks()
 
     def do_story(self, story: Story) -> None:
         self.delete_qa_results()
-        with self.session as session:
-            iteration_num = 1
-            while not self.do_iteration(session, story, iteration_num):
-                iteration_num += 1
-                if iteration_num > self.max_iterations:
-                    raise RalphError(f"Number of iterations exceeded {self.max_iterations}")
+        self.session.start_thread()
+        iteration_num = 1
+        while not self.do_iteration(story, iteration_num):
+            iteration_num += 1
+            if iteration_num > self.max_iterations:
+                raise RalphError(f"Number of iterations exceeded {self.max_iterations}")
 
-            self.update_progress(story, session.summary(ProgrammingResult))
-            story.passes = True
-            self.prd_file.write_text(self.prd.model_dump_json(indent=2))
-            ui.console.print(f"Story [bold]{story.title}[/bold] completed\n", style="meta")
+        self.update_progress(story, self.session.summary(ProgrammingResult))
+        story.passes = True
+        self.prd_file.write_text(self.prd.model_dump_json(indent=2))
+        ui.console.print(f"Story [bold]{story.title}[/bold] completed\n", style="meta")
 
-    def run(self) -> None:
-        self.intro()
-        try:
-            self.prd_file = self.ralph_dir / "prd.json"
-            self.progress_file = self.ralph_dir / "progress.md"
-            self.prd = PRD.model_validate_json(self.prd_file.read_text(encoding="utf-8"))
-            self.progress_file.write_text("", encoding="utf-8")
+    def prepare(self) -> None:
+        self.prd_file = self.ralph_dir / "prd.json"
+        self.progress_file = self.ralph_dir / "progress.md"
+        self.prd = PRD.model_validate_json(self.prd_file.read_text(encoding="utf-8"))
+        self.progress_file.write_text("", encoding="utf-8")
 
-            while (story := self.prd.next_story()) is not None:
-                self.do_story(story)
-
-        except Exception as error:
-            typer.secho(f"Error: {error}", err=True, fg=typer.colors.BRIGHT_RED)
-            raise typer.Exit(code=1) from error
+    def execute(self) -> None:
+        while (story := self.prd.next_story()) is not None:
+            self.do_story(story)

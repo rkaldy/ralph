@@ -18,16 +18,6 @@ class CodexRunner:
         self.ralph_dir = Path(".ralph")
         self.ralph_dir.mkdir(exist_ok=True)
 
-    def run(self) -> None:
-        self.intro()
-        try:
-            self.prepare()
-            with self.session as session:
-                self.execute(session)
-        except Exception as error:
-            typer.secho(f"Error: {error}", err=True, fg=typer.colors.BRIGHT_RED)
-            raise typer.Exit(code=1) from error
-
     def intro(self) -> None:
         cwd = Path.cwd()
         with contextlib.suppress(BaseException):
@@ -43,5 +33,15 @@ class CodexRunner:
     def prepare(self) -> None:
         pass
 
-    def execute(self, session: CodexSession) -> None:
+    def execute(self) -> None:
         pass
+
+    def run(self) -> None:
+        self.intro()
+        try:
+            self.prepare()
+            with self.session:
+                self.execute()
+        except Exception as error:
+            typer.secho(f"Error: {error}", err=True, fg=typer.colors.BRIGHT_RED)
+            raise typer.Exit(code=1) from error

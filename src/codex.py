@@ -51,19 +51,6 @@ class CodexSession:
 
     def __enter__(self) -> "CodexSession":
         self.codex.__enter__()
-        self.thread = self.codex.thread_start(
-            cwd=str(Path.cwd()),
-            sandbox=Sandbox.workspace_write,
-            model=self.model,
-            config=(
-                {
-                    "model_reasoning_effort": self.reasoning,
-                    "model_reasoning_summary": "auto",
-                }
-                if self.reasoning is not None
-                else {"model_reasoning_summary": "auto"}
-            ),
-        )
         return self
 
     def __exit__(
@@ -82,9 +69,24 @@ class CodexSession:
                 return path.resolve()
         raise RalphError(f"'{self.skill}' skill is not installed")
 
+    def start_thread(self) -> None:
+        self.thread = self.codex.thread_start(
+            cwd=str(Path.cwd()),
+            sandbox=Sandbox.workspace_write,
+            model=self.model,
+            config=(
+                {
+                    "model_reasoning_effort": self.reasoning,
+                    "model_reasoning_summary": "auto",
+                }
+                if self.reasoning is not None
+                else {"model_reasoning_summary": "auto"}
+            ),
+        )
+
     def prompt(self, prompt: str) -> bool:
         if self.thread is None:
-            raise RalphError("Codex session is not started")
+            raise RalphError("Codex thread not started")
 
         turn = self.thread.turn(
             [TextInput(text=prompt), SkillInput(name=self.skill, path=str(self._skill_path()))],
@@ -137,10 +139,10 @@ class CodexSession:
 
     def summary[ResponseT: BaseModel](self, response_model: type[ResponseT]) -> ResponseT:
         if self.thread is None:
-            raise RalphError("Codex session is not started")
+            raise RalphError("Codex thread not started")
 
         result = self.thread.run(
-            [TextInput(text=SUMMARY_PROMPT), SkillInput(name=self.skill, path=str(self._skill_path()))],
+            [TextInput(text=SUMMARY_PROMPT)],
             output_schema=response_model.model_json_schema(),
         )
         if result.status == TurnStatus.failed or not result.final_response:

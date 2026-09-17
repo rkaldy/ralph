@@ -3,7 +3,6 @@ from pathlib import Path
 from pydantic import Field
 
 import ui
-from codex import CodexSession
 from config import RalphConfig
 from exceptions import RalphError
 from models import CodexResultBase
@@ -27,11 +26,12 @@ class Converter(CodexRunner):
         )
         self.prd = prd
 
-    def execute(self, session: CodexSession) -> None:
+    def execute(self) -> None:
         output_file = self.ralph_dir / "prd.json"
         output_file.unlink(missing_ok=True)
 
-        session.prompt(f"Convert PRD at {self.prd} to {output_file}.")
+        self.session.start_thread()
+        self.session.prompt(f"Convert PRD at {self.prd} to {output_file}.")
 
         if not output_file.is_file():
             raise RalphError(f"Codex did not complete the conversion to {output_file}")
