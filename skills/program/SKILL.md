@@ -1,22 +1,26 @@
 ---
-name: "implement"
+name: "program"
 description: "Implement or repair one Ralph user story selected by the orchestrator from `.ralph/prd.json`, including follow-up iterations for lint, typecheck, or test failures."
 ---
 
 # Ralph Story Implementation
 
-Implement the single user story identified in the current prompt. Keep the change focused on that story and its acceptance criteria.
+Code the single user story identified in the current prompt. Keep the change focused on that story and its acceptance criteria.
 
 ## Context
 
 - Follow all applicable `AGENTS.md` instructions in the workspace.
-- Read the selected story in `.ralph/prd.json` for its complete requirements and acceptance criteria.
 - Read all the **Codebase Patterns** and **Gotchas encountered** sections in `.ralph/progress.md`, if the file exists, before making changes.
 - Inspect the relevant code and follow established project patterns.
 - Use the original PRD only for global requirements, non-goals, technical constraints, terminology, and dependencies relevant to the selected story.
 - Other stories in the original PRD are context, not additional implementation scope.
 
-If the requested story cannot be found or its requirements are contradictory, report the blocker instead of selecting or implementing a different story.
+If the requirements are valid, and you are able to implement it, write a final response with exact text:
+```text
+<COMPLETE>
+```
+
+If the requirements are contradictory, or there are other reason why you are unable to implement it, write a final response with a brief explanation why you can't implement the story.  
 
 ## Previous Quality-check Failures
 
@@ -49,14 +53,3 @@ Do not perform any of the following:
 - Stage changes or create Git commits.
 - Make any changes in `.ralph/prd.json` or `.ralph/progress.md`
 - Treat checks run during this turn as the final project quality gate.
-
-## Final Result
-
-Return the implementation summary through the structured result supplied by
-the orchestrator. Do not write a separate result file.
-
-- `description` briefly explains what was implemented.
-- `files` lists every changed file.
-- `patterns` contains reusable codebase knowledge discovered during the work.
-- `gotchas` contains pitfalls relevant to later iterations or stories.
-- `blocker` contains the reason the story cannot be implemented safely; otherwise leave it null.

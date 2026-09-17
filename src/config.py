@@ -17,9 +17,9 @@ class RalphConfig(BaseSettings):
         extra="ignore",
     )
 
-    LINT_COMMAND: str = ""
-    TYPECHECK_COMMAND: str = ""
-    TEST_COMMAND: str = ""
+    LINT_COMMAND: str | None = None
+    TYPECHECK_COMMAND: str | None = None
+    TEST_COMMAND: str | None = None
 
     SHOW_COMMANDS: bool = False
     MAX_ITERATIONS: int = 5

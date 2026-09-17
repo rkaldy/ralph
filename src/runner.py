@@ -13,14 +13,13 @@ class CodexRunner:
     def __init__(
         self, config: RalphConfig, skill: str, title: str, gpt_model: str | None, reasoning: str | None
     ) -> None:
-        self.config = config
         self.title = title
         self.session = CodexSession(config, skill, gpt_model, reasoning)
         self.ralph_dir = Path(".ralph")
         self.ralph_dir.mkdir(exist_ok=True)
 
     def run(self) -> None:
-        self._intro()
+        self.intro()
         try:
             self.prepare()
             with self.session as session:
@@ -29,7 +28,7 @@ class CodexRunner:
             typer.secho(f"Error: {error}", err=True, fg=typer.colors.BRIGHT_RED)
             raise typer.Exit(code=1) from error
 
-    def _intro(self) -> None:
+    def intro(self) -> None:
         cwd = Path.cwd()
         with contextlib.suppress(BaseException):
             cwd = Path("~") / cwd.relative_to(Path.home())

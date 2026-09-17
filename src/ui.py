@@ -21,12 +21,11 @@ from exceptions import RalphError
 theme = Theme(
     {
         "meta": "#ffe8c8",
-        "metabold": "bold #ffe8c8",
         "metadark": "#807870",
         "command": "#50d050 bold",
-        "spinner": "#a08060",
         "user": "#ffffff on #202020",
         "reasoning": "#808080",
+        "prompt": "#c0c0ff",
     }
 )
 
@@ -99,7 +98,7 @@ def prompt_user() -> str:
 
 def horizontal_line() -> None:
     console.print()
-    console.print("-" * max(console.width - 1, 1))
+    console.print("─" * max(console.width - 1, 1), style="metadark")
     console.print()
 
 

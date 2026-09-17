@@ -6,7 +6,7 @@ import typer
 from config import RalphConfig
 from converter import Converter
 from designer import Designer
-from implementor import Implementor
+from programmer import Programmer
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -50,7 +50,7 @@ def implement(
     ctx: typer.Context,
 ) -> None:
     "Implement the feature using `prd.json`"
-    implementor = Implementor(ctx.obj)
+    implementor = Programmer(ctx.obj)
     implementor.run()
 
 
