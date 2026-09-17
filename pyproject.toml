@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ralph = "ralph:main"
+ralph = "app:main"
 
 [build-system]
 requires = ["setuptools>=68"]

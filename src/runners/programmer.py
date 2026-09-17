@@ -7,12 +7,11 @@ from pydantic import Field
 from rich.markdown import Markdown
 
 import ui
+from codex import CodexSession
 from config import RalphConfig
 from exceptions import RalphError
-from models import CodexResultBase, Story
-from prd import PRD
-from runner import CodexRunner
-from session import CodexSession
+from models import PRD, CodexResultBase, Story
+from runners.runner import CodexRunner
 
 
 class ProgrammingResult(CodexResultBase):
@@ -32,10 +31,10 @@ class Programmer(CodexRunner):
     def __init__(self, config: RalphConfig):
         super().__init__(
             config,
-            skill="implement",
-            title="Agentic coding",
-            gpt_model=config.GPT_MODEL_IMPLEMENT,
-            reasoning=config.GPT_REASONING_IMPLEMENT,
+            skill="programmer",
+            title="Agentic programmer",
+            gpt_model=config.GPT_MODEL_PROGRAMMER,
+            reasoning=config.GPT_REASONING_PROGRAMMER,
         )
         self.max_iterations = config.MAX_ITERATIONS
         self.qa_commands = {
@@ -111,10 +110,10 @@ class Programmer(CodexRunner):
 
     def update_progress(self, story: Story, result: ProgrammingResult) -> None:
         summary = (
-            f"# {story.id}: {story.title}\n\n{result.description}\n\n"
-            f"## Files changed\n\n{'\n'.join(f'- {path}' for path in result.files)}\n\n"
-            f"## Codebase Patterns\n\n{'\n'.join(f'- {pattern}' for pattern in result.patterns)}\n\n"
-            f"## Gotchas encountered\n\n{'\n'.join(f'- {gotcha}' for gotcha in result.gotchas)}\n\n"
+            f"## {story.id}: {story.title}\n\n{result.description}\n\n"
+            f"### Files changed\n\n{'\n'.join(f'- {path}' for path in result.files)}\n\n"
+            f"### Codebase Patterns\n\n{'\n'.join(f'- {pattern}' for pattern in result.patterns)}\n\n"
+            f"### Gotchas encountered\n\n{'\n'.join(f'- {gotcha}' for gotcha in result.gotchas)}\n\n"
         )
         ui.console.print(Markdown(summary, style="prompt"))
         with self.progress_file.open("a", encoding="utf-8") as progress:

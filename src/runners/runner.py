@@ -5,8 +5,8 @@ import typer
 from rich.panel import Panel
 
 import ui
+from codex import CodexSession
 from config import RalphConfig
-from session import CodexSession
 
 
 class CodexRunner:

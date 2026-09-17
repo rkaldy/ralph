@@ -1,5 +1,5 @@
 ---
-name: convert
+name: "converter"
 description: "Convert PRDs to JSON format for the Ralph autonomous agent system. Use when you have an existing PRD and need to convert it to Ralph's JSON format."
 ---
 

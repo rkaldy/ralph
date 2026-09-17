@@ -1,5 +1,5 @@
 ---
-name: design
+name: "designer"
 description: "Generate a Product Requirements Document (PRD) for a new feature. Use when planning a feature, starting a new project, or when asked to create a PRD."
 ---
 

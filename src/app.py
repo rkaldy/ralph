@@ -4,9 +4,9 @@ from typing import Annotated
 import typer
 
 from config import RalphConfig
-from converter import Converter
-from designer import Designer
-from programmer import Programmer
+from runners.converter import Converter
+from runners.designer import Designer
+from runners.programmer import Programmer
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -17,7 +17,7 @@ def load_config(ctx: typer.Context) -> None:
 
 
 @app.command()
-def design(
+def designer(
     ctx: typer.Context,
     feature: Annotated[str, typer.Argument(help="Simple, high-level feature description")],
 ) -> None:
@@ -27,7 +27,7 @@ def design(
 
 
 @app.command()
-def convert(
+def converter(
     ctx: typer.Context,
     prd: Annotated[
         Path,
@@ -46,12 +46,12 @@ def convert(
 
 
 @app.command()
-def implement(
+def programmer(
     ctx: typer.Context,
 ) -> None:
-    "Implement the feature using `prd.json`"
-    implementor = Programmer(ctx.obj)
-    implementor.run()
+    "Code the feature using `prd.json`"
+    programmer = Programmer(ctx.obj)
+    programmer.run()
 
 
 def main() -> None:

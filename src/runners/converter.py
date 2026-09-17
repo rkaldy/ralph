@@ -3,11 +3,11 @@ from pathlib import Path
 from pydantic import Field
 
 import ui
+from codex import CodexSession
 from config import RalphConfig
 from exceptions import RalphError
 from models import CodexResultBase
-from runner import CodexRunner
-from session import CodexSession
+from runners.runner import CodexRunner
 
 
 class ConversionResult(CodexResultBase):
@@ -20,10 +20,10 @@ class Converter(CodexRunner):
     def __init__(self, config: RalphConfig, prd: Path) -> None:
         super().__init__(
             config,
-            skill="convert",
+            skill="converter",
             title="Convert PRD to JSON",
-            gpt_model=config.GPT_MODEL_DESIGN,
-            reasoning=config.GPT_REASONING_DESIGN,
+            gpt_model=config.GPT_MODEL_DESIGNER,
+            reasoning=config.GPT_REASONING_DESIGNER,
         )
         self.prd = prd
 
@@ -39,4 +39,4 @@ class Converter(CodexRunner):
         ui.console.print(
             f"\nConversion completed. The generated JSON is at [bold]{output_file}[/bold]", style="meta"
         )
-        ui.console.print("Now run [bold]ralph implement[/bold]\n", style="meta")
+        ui.console.print("Now run [bold]ralph programmer[/bold]\n", style="meta")

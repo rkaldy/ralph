@@ -24,23 +24,24 @@ class RalphConfig(BaseSettings):
     SHOW_COMMANDS: bool = False
     MAX_ITERATIONS: int = 5
 
-    GPT_MODEL_DESIGN: str | None = None
-    GPT_REASONING_DESIGN: str | None = None
-    GPT_MODEL_IMPLEMENT: str | None = None
-    GPT_REASONING_IMPLEMENT: str | None = None
+    GPT_MODEL_DESIGNER: str | None = None
+    GPT_REASONING_DESIGNER: str | None = None
+    GPT_MODEL_PROGRAMMER: str | None = None
+    GPT_REASONING_PROGRAMMER: str | None = None
 
     @field_validator(
-        "GPT_MODEL_DESIGN",
-        "GPT_REASONING_DESIGN",
-        "GPT_MODEL_IMPLEMENT",
-        "GPT_REASONING_IMPLEMENT",
+        "GPT_MODEL_DESIGNER",
+        "GPT_REASONING_DESIGNER",
+        "GPT_MODEL_PROGRAMMER",
+        "GPT_REASONING_PROGRAMMER",
         mode="before",
     )
     @classmethod
     def empty_gpt_setting_as_none(cls, value: object) -> object:
         return None if value == "" else value
 
-    def _model_settings(self) -> tuple[str | None, str | None]:
+    @staticmethod
+    def _model_settings() -> tuple[str | None, str | None]:
         """Load model settings from the user's Codex configuration."""
         try:
             with CODEX_CONFIG_PATH.open("rb") as config_file:
@@ -59,13 +60,13 @@ class RalphConfig(BaseSettings):
     def apply_codex_defaults(self) -> "RalphConfig":
         model, reasoning = self._model_settings()
 
-        if self.GPT_MODEL_DESIGN is None:
-            self.GPT_MODEL_DESIGN = model
-        if self.GPT_REASONING_DESIGN is None:
-            self.GPT_REASONING_DESIGN = reasoning
-        if self.GPT_MODEL_IMPLEMENT is None:
-            self.GPT_MODEL_IMPLEMENT = model
-        if self.GPT_REASONING_IMPLEMENT is None:
-            self.GPT_REASONING_IMPLEMENT = reasoning
+        if self.GPT_MODEL_DESIGNER is None:
+            self.GPT_MODEL_DESIGNER = model
+        if self.GPT_REASONING_DESIGNER is None:
+            self.GPT_REASONING_DESIGNER = reasoning
+        if self.GPT_MODEL_PROGRAMMER is None:
+            self.GPT_MODEL_PROGRAMMER = model
+        if self.GPT_REASONING_PROGRAMMER is None:
+            self.GPT_REASONING_PROGRAMMER = reasoning
 
         return self

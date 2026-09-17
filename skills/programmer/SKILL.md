@@ -1,5 +1,5 @@
 ---
-name: "program"
+name: "programer"
 description: "Implement or repair one Ralph user story selected by the orchestrator from `.ralph/prd.json`, including follow-up iterations for lint, typecheck, or test failures."
 ---
 

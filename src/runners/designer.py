@@ -1,11 +1,11 @@
 from pydantic import Field
 
 import ui
+from codex import CodexSession
 from config import RalphConfig
 from exceptions import RalphError
 from models import CodexResultBase
-from runner import CodexRunner
-from session import CodexSession
+from runners.runner import CodexRunner
 
 
 class DesignResult(CodexResultBase):
@@ -18,10 +18,10 @@ class Designer(CodexRunner):
     def __init__(self, config: RalphConfig, feature: str) -> None:
         super().__init__(
             config,
-            skill="design",
+            skill="designer",
             title="Project Requirement Description designer",
-            gpt_model=config.GPT_MODEL_DESIGN,
-            reasoning=config.GPT_REASONING_DESIGN,
+            gpt_model=config.GPT_MODEL_DESIGNER,
+            reasoning=config.GPT_REASONING_DESIGNER,
         )
         self.feature = feature
 
@@ -40,5 +40,5 @@ class Designer(CodexRunner):
 
         ui.console.print(f"\nDesign completed. The generated PRD is [bold]{prd_file}[/bold]", style="meta")
         ui.console.print(
-            f"Review and update it and then run [bold]ralph convert {prd_file}[/bold]\n", style="meta"
+            f"Review and update it and then run [bold]ralph converter {prd_file}[/bold]\n", style="meta"
         )
