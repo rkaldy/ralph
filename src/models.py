@@ -25,8 +25,8 @@ class Story(BaseModel):
 
 
 class PRD(BaseModel):
+    name: str
     branch_name: str
-    original_prd: str
     description: str
     user_stories: list[Story]
 
