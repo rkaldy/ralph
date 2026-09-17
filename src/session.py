@@ -12,6 +12,9 @@ from openai_codex.generated.v2_all import (
     ItemCompletedNotification,
     ItemStartedNotification,
     MessagePhase,
+    ReasoningSummaryTextDeltaNotification,
+    ReasoningTextDeltaNotification,
+    ReasoningThreadItem,
     TurnCompletedNotification,
     TurnStatus,
 )
@@ -24,6 +27,7 @@ from ui import LiveRow, console
 
 CODEX_CONFIG_PATH = Path.home() / ".codex/config.toml"
 COMPLETE_MARKER = "<COMPLETE>"
+AGENT_INITIAL_BUFFERING = len(COMPLETE_MARKER) + 3
 SUMMARY_PROMPT = """
 Report the outcome of the thread using the supplied output schema.
 This is a read-only reporting turn:
@@ -55,7 +59,14 @@ class CodexSession:
             cwd=str(Path.cwd()),
             sandbox=Sandbox.workspace_write,
             model=self.model,
-            config=({"model_reasoning_effort": self.reasoning} if self.reasoning is not None else None),
+            config=(
+                {
+                    "model_reasoning_effort": self.reasoning,
+                    "model_reasoning_summary": "auto",
+                }
+                if self.reasoning is not None
+                else {"model_reasoning_summary": "auto"}
+            ),
         )
         return self
 
@@ -106,7 +117,8 @@ class CodexSession:
         )
 
         complete: bool = False
-        row = LiveRow(initial_buffering=len(COMPLETE_MARKER) + 3)
+        reasoning_has_delta = False
+        row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
         try:
             for event in turn.stream():
                 payload = event.payload
@@ -115,18 +127,26 @@ class CodexSession:
                     item = payload.item.root
                     if isinstance(item, AgentMessageThreadItem):
                         row.start("")
+                    elif isinstance(item, ReasoningThreadItem):
+                        reasoning_has_delta = True
+                        row.start("", style="reasoning")
                     elif isinstance(item, CommandExecutionThreadItem):
                         row.text(
                             Text.from_markup("[green][bold]Run[/] ").append_text(
                                 self._format_command(item.command)
                             )
                         )
-                        row = LiveRow()
+                        row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
                 elif isinstance(payload, AgentMessageDeltaNotification):
                     if row.match(COMPLETE_MARKER):
                         complete = True
                     if not complete:
                         row.update(payload.delta)
+                elif isinstance(
+                    payload,
+                    (ReasoningSummaryTextDeltaNotification, ReasoningTextDeltaNotification),
+                ):
+                    row.update(payload.delta)
                 elif isinstance(payload, ItemCompletedNotification):
                     item = payload.item.root
                     if isinstance(item, AgentMessageThreadItem):
@@ -135,7 +155,15 @@ class CodexSession:
                             complete = True
                         if item.phase != MessagePhase.final_answer:
                             console.print()
-                            row = LiveRow()
+                            row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
+                    elif isinstance(item, ReasoningThreadItem):
+                        if not reasoning_has_delta:
+                            reasoning_text = "\n".join(item.summary or item.content or [])
+                            if reasoning_text:
+                                row.update(reasoning_text)
+                        row.stop()
+                        console.print()
+                        row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
                 elif isinstance(payload, TurnCompletedNotification):
                     if payload.turn.status == TurnStatus.interrupted:
                         raise RalphError("Interrupted")

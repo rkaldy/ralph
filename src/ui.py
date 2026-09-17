@@ -17,6 +17,7 @@ theme = Theme(
         "command": "#e0ffe0",
         "spinner": "#a08060",
         "user": "#ffffff on #202020",
+        "reasoning": "#808080",
     }
 )
 
