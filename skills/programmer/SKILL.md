@@ -1,5 +1,5 @@
 ---
-name: "programer"
+name: "programmer"
 description: "Implement or repair one Ralph user story selected by the orchestrator from `.ralph/prd.json`, including follow-up iterations for lint, typecheck, or test failures."
 ---
 
@@ -15,12 +15,6 @@ Code the single user story identified in the current prompt. Keep the change foc
 - Use the original PRD only for global requirements, non-goals, technical constraints, terminology, and dependencies relevant to the selected story.
 - Other stories in the original PRD are context, not additional implementation scope.
 
-If the requirements are valid, and you are able to implement it, write a final response with exact text:
-```text
-<COMPLETE>
-```
-
-If the requirements are contradictory, or there are other reason why you are unable to implement it, write a final response with a brief explanation why you can't implement the story.  
 
 ## Previous Quality-check Failures
 
@@ -53,3 +47,12 @@ Do not perform any of the following:
 - Stage changes or create Git commits.
 - Make any changes in `.ralph/prd.json` or `.ralph/progress.md`
 - Treat checks run during this turn as the final project quality gate.
+
+## Output
+
+After successful implementation, write a final response with exact text:
+```text
+<COMPLETE>
+```
+
+If the requirements are contradictory, or there are other reason why you are unable to implement it, write a final response with a brief explanation why you can't implement the story.  

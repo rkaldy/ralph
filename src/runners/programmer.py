@@ -101,11 +101,7 @@ class Programmer(CodexRunner):
                         f"in the file `{qa_result}`.\n"
                     )
             prompt += "\n"
-        prompt += (
-            f"Original PRD for global context: `.ralph/tasks/{self.prd.original_prd}`\n\n"
-            + "Acceptance criteria:\n"
-            + "\n".join([f" - {ac}" for ac in story.acceptance_criteria])
-        )
+        prompt += "Acceptance criteria:\n" + "\n".join([f" - {ac}" for ac in story.acceptance_criteria])
         return prompt
 
     def update_progress(self, story: Story, result: ProgrammingResult) -> None:
@@ -135,10 +131,10 @@ class Programmer(CodexRunner):
     def do_story(self, story: Story) -> None:
         self.delete_qa_results()
         with self.session as session:
-            num_iterations = 0
-            while not self.do_iteration(session, story, num_iterations):
-                num_iterations += 1
-                if num_iterations > self.max_iterations:
+            iteration_num = 1
+            while not self.do_iteration(session, story, iteration_num):
+                iteration_num += 1
+                if iteration_num > self.max_iterations:
                     raise RalphError(f"Number of iterations exceeded {self.max_iterations}")
 
             self.update_progress(story, session.summary(ProgrammingResult))
