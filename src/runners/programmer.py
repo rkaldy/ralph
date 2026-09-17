@@ -4,7 +4,6 @@ from pathlib import Path
 
 import typer
 from pydantic import Field
-from rich.markdown import Markdown
 
 import ui
 from config import RalphConfig
@@ -106,15 +105,15 @@ class Programmer(CodexRunner):
             f"### Codebase Patterns\n\n{'\n'.join(f'- {pattern}' for pattern in result.patterns)}\n\n"
             f"### Gotchas encountered\n\n{'\n'.join(f'- {gotcha}' for gotcha in result.gotchas)}\n\n"
         )
-        ui.console.print(Markdown(summary, style="prompt"))
         with self.progress_file.open("a", encoding="utf-8") as progress:
             progress.write(summary)
 
     def do_iteration(self, story: Story, iteration_num: int) -> bool:
         ui.horizontal_line()
         ui.console.print(
-            f"Story: [bold]{story.title}[/bold]  iteration: [bold]{iteration_num}[/bold]\n",
+            f"[bold]{story.id}: {story.title}[/bold]  iteration [bold]{iteration_num}[/bold]\n",
             style="meta",
+            highlight=False
         )
 
         prompt = self.build_prompt(story, iteration_num)
@@ -132,10 +131,11 @@ class Programmer(CodexRunner):
             if iteration_num > self.max_iterations:
                 raise RalphError(f"Number of iterations exceeded {self.max_iterations}")
 
-        self.update_progress(story, self.session.summary(ProgrammingResult))
         story.passes = True
         self.prd_file.write_text(self.prd.model_dump_json(indent=2))
-        ui.console.print(f"Story [bold]{story.title}[/bold] completed\n", style="meta")
+        ui.console.print("Retrieving summary and updating progress.md", style="meta")
+        self.update_progress(story, self.session.summary(ProgrammingResult))
+        ui.console.print(f"\nStory [bold]{story.title}[/bold] completed\n", style="meta", highlight=False)
 
     def prepare(self) -> None:
         self.prd_file = self.ralph_dir / "prd.json"

@@ -145,8 +145,10 @@ class CodexSession:
             [TextInput(text=SUMMARY_PROMPT)],
             output_schema=response_model.model_json_schema(),
         )
-        if result.status == TurnStatus.failed or not result.final_response:
+        if result.status == TurnStatus.failed:
             raise RalphError(result.error)
+        if not result.final_response:
+            raise RalphError("Codex returned no final response")
         try:
             return response_model.model_validate_json(result.final_response)
         except ValidationError as error:

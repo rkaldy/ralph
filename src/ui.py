@@ -97,7 +97,6 @@ def prompt_user() -> str:
 
 
 def horizontal_line() -> None:
-    console.print()
     console.print("─" * max(console.width - 1, 1), style="metadark")
     console.print()
 
