@@ -20,7 +20,7 @@ Take a PRD (markdown file or text) and convert it to `.ralph/prd.json` in the cu
 ```json
 {
   "branchName": "ralph/[feature-name-kebab-case]",
-  "sourcePRD": "[original PRD filename]",
+  "originalPrd": "[original PRD filename]",
   "description": "[Feature description from PRD title/intro]",
   "userStories": [
     {
@@ -156,7 +156,7 @@ Add ability to mark tasks with different statuses.
 ```json
 {
   "branchName": "ralph/task-status",
-  "sourcePRD": "task-status.md",
+  "originalPrd": "task-status.md",
   "description": "Task Status Feature - Track task progress with status indicators",
   "userStories": [
     {

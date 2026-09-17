@@ -1,14 +1,11 @@
-from pathlib import Path
-
 from pydantic import Field
 
 import ui
 from config import RalphConfig
+from exceptions import RalphError
 from models import CodexResultBase
 from runner import CodexRunner
 from session import CodexSession
-from exceptions import RalphError
-from ui import INTRO_BRIGHT
 
 
 class DesignResult(CodexResultBase):
@@ -41,5 +38,7 @@ class Designer(CodexRunner):
         if not prd_file.is_file():
             raise RalphError(f"Codex did not create {prd_file}")
 
-        ui.print_md(f"Design completed. The generated PRD is **{prd_file}** .", INTRO_BRIGHT)
-        ui.print_md(f"Review and update it and then run **ralph convert {prd_file}** .\n", INTRO_BRIGHT)
+        ui.console.print(f"\nDesign completed. The generated PRD is [bold]{prd_file}[/bold]", style="meta")
+        ui.console.print(
+            f"Review and update it and then run [bold]ralph convert {prd_file}[/bold]\n", style="meta"
+        )

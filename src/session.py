@@ -1,14 +1,14 @@
+import re
 import sys
 import tomllib
 from pathlib import Path
 from types import TracebackType
 
-import typer
 from openai_codex import Codex, Sandbox, SkillInput, TextInput, Thread
 from openai_codex.generated.v2_all import (
     AgentMessageDeltaNotification,
     AgentMessageThreadItem,
-    CommandExecutionOutputDeltaNotification,
+    CommandExecutionThreadItem,
     ItemCompletedNotification,
     ItemStartedNotification,
     MessagePhase,
@@ -16,12 +16,13 @@ from openai_codex.generated.v2_all import (
     TurnStatus,
 )
 from pydantic import BaseModel, ValidationError
+from rich.syntax import Syntax
+from rich.text import Text
 
 from exceptions import RalphError
-from stream import CodexStreamOutput
+from ui import LiveRow, console
 
 CODEX_CONFIG_PATH = Path.home() / ".codex/config.toml"
-
 COMPLETE_MARKER = "<COMPLETE>"
 SUMMARY_PROMPT = """
 Report the outcome of the thread using the supplied output schema.
@@ -90,6 +91,12 @@ class CodexSession:
                 return path.resolve()
         raise RalphError(f"'{self.skill}' skill is not installed")
 
+    @staticmethod
+    def _format_command(command: str) -> Text:
+        if match := re.fullmatch(r'/bin/bash\s+-[^\s"]+\s+["\'](.*)["\']', command, flags=re.DOTALL):
+            command = match.group(1)
+        return Syntax("", "bash", theme="monokai").highlight(command)
+
     def prompt(self, prompt: str) -> bool:
         if self.thread is None:
             raise RalphError("Codex session is not started")
@@ -99,36 +106,43 @@ class CodexSession:
         )
 
         complete: bool = False
-        hidden_items: set[str] = set()
-        output = CodexStreamOutput()
-        for event in turn.stream():
-            payload = event.payload
-            if isinstance(payload, ItemStartedNotification):
-                item = payload.item.root
-                if isinstance(item, AgentMessageThreadItem):
-                    if item.phase == MessagePhase.final_answer:
-                        hidden_items.add(item.id)
-                    else:
-                        typer.echo("• ", nl=False)
-            elif isinstance(payload, AgentMessageDeltaNotification):
-                if payload.item_id not in hidden_items:
-                    output.write(payload.delta, AgentMessageDeltaNotification)
-            elif isinstance(payload, CommandExecutionOutputDeltaNotification):
-                output.write(payload.delta, CommandExecutionOutputDeltaNotification)
-            elif isinstance(payload, ItemCompletedNotification):
-                item = payload.item.root
-                if isinstance(item, AgentMessageThreadItem):
-                    if item.phase == MessagePhase.final_answer:
+        row = LiveRow(initial_buffering=len(COMPLETE_MARKER) + 3)
+        try:
+            for event in turn.stream():
+                payload = event.payload
+                # console.print(event.method, style="#808080")
+                if isinstance(payload, ItemStartedNotification):
+                    item = payload.item.root
+                    if isinstance(item, AgentMessageThreadItem):
+                        row.start("")
+                    elif isinstance(item, CommandExecutionThreadItem):
+                        row.text(
+                            Text.from_markup("[green][bold]Run[/] ").append_text(
+                                self._format_command(item.command)
+                            )
+                        )
+                        row = LiveRow()
+                elif isinstance(payload, AgentMessageDeltaNotification):
+                    if row.match(COMPLETE_MARKER):
+                        complete = True
+                    if not complete:
+                        row.update(payload.delta)
+                elif isinstance(payload, ItemCompletedNotification):
+                    item = payload.item.root
+                    if isinstance(item, AgentMessageThreadItem):
+                        row.stop()
                         if COMPLETE_MARKER in item.text:
                             complete = True
-                        else:
-                            output.write(item.text, AgentMessageDeltaNotification)
-                    typer.echo("\n")
-            elif isinstance(payload, TurnCompletedNotification):
-                if payload.turn.status == TurnStatus.interrupted:
-                    raise RalphError("Interrupted")
-                elif payload.turn.status == TurnStatus.failed:
-                    raise RalphError(payload.turn.error)
+                        if item.phase != MessagePhase.final_answer:
+                            console.print()
+                            row = LiveRow()
+                elif isinstance(payload, TurnCompletedNotification):
+                    if payload.turn.status == TurnStatus.interrupted:
+                        raise RalphError("Interrupted")
+                    elif payload.turn.status == TurnStatus.failed:
+                        raise RalphError(payload.turn.error)
+        finally:
+            row.stop()
 
         return complete
 

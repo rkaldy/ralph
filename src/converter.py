@@ -4,11 +4,10 @@ from pydantic import Field
 
 import ui
 from config import RalphConfig
+from exceptions import RalphError
 from models import CodexResultBase
 from runner import CodexRunner
 from session import CodexSession
-from exceptions import RalphError
-from ui import INTRO_BRIGHT
 
 
 class ConversionResult(CodexResultBase):
@@ -37,5 +36,7 @@ class Converter(CodexRunner):
         if not output_file.is_file():
             raise RalphError(f"Codex did not complete the conversion to {output_file}")
 
-        ui.print_md(f"Conversion completed. The generated JSON is at **{output_file}** .", INTRO_BRIGHT)
-        ui.print_md("Now run **ralph implement** .\n", INTRO_BRIGHT)
+        ui.console.print(
+            f"\nConversion completed. The generated JSON is at [bold]{output_file}[/bold]", style="meta"
+        )
+        ui.console.print("Now run [bold]ralph implement[/bold]\n", style="meta")

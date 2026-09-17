@@ -6,11 +6,10 @@ from pydantic import Field
 
 import ui
 from config import RalphConfig
+from exceptions import RalphError
 from models import PRD, CodexResultBase, Story
 from runner import CodexRunner
 from session import CodexSession
-from exceptions import RalphError
-from ui import INTRO_BRIGHT
 
 
 class ExecutionResult(CodexResultBase):
@@ -44,7 +43,7 @@ class Implementor(CodexRunner):
         result_file = self.ralph_dir / f".{name}-result.txt"
         result_file.unlink(missing_ok=True)
 
-        typer.secho(f"\n• Running {name}: {command}\n\n", fg=ui.COMMAND_OUTPUT)
+        ui.console.print(f"\n• Running {name}: {command}\n", style="meta")
 
         with (
             result_file.open("w", encoding="utf-8") as result_output,
@@ -82,7 +81,7 @@ class Implementor(CodexRunner):
 
     def iteration(self, session: CodexSession, story: Story, iteration_num: int) -> bool:
         ui.horizontal_line()
-        ui.print_md(f"Story: **{story.title}** iteration #{iteration_num}", INTRO_BRIGHT)
+        ui.console.print(f"Story: [bold]{story.title}[/bold]  iteration #{iteration_num}", style="meta")
 
         prompt = (
             "Implement the following user story:\n\n"
@@ -116,4 +115,4 @@ class Implementor(CodexRunner):
                     raise RalphError(f"Number of iterations exceeded {self.config.MAX_ITERATIONS}")
                 success = self.iteration(session, story, num_iterations)
 
-            ui.print_md(f"Story: **{story.title}** completed", INTRO_BRIGHT)
+            ui.console.print(f"Story: [bold]{story.title}[/bold] completed\n", style="meta")

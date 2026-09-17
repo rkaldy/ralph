@@ -1,148 +1,93 @@
-import shutil
-import sys
-from collections.abc import Iterator
-from contextlib import contextmanager
-from threading import Event, Thread
-
 import typer
+from rich.console import Console
+from rich.control import Control
+from rich.live import Live
+from rich.markdown import Markdown
+from rich.spinner import Spinner
+from rich.text import Text
+from rich.theme import Theme
 
 from exceptions import RalphError
 
-INTRO_BRIGHT = (255, 232, 200)
-INTRO_DARK = (128, 120, 112)
-USER_BACKGROUND = (32, 32, 32)
-USER_FOREGROUND = typer.colors.BRIGHT_WHITE
-CODEX_OUTPUT = typer.colors.BRIGHT_WHITE
-COMMAND_OUTPUT = (224, 255, 224)
-MONOSPACE = (64, 192, 192)
+theme = Theme(
+    {
+        "meta": "#ffe8c8",
+        "metabold": "bold #ffe8c8",
+        "metadark": "#807870",
+        "command": "#e0ffe0",
+        "spinner": "#a08060",
+        "user": "#ffffff on #202020",
+    }
+)
 
-SPINNER_FRAMES = ("⢹", "⣸", "⣴", "⣦", "⣇", "⡏", "⠟", "⠻")
-SPINNER_INTERVAL = 0.08
-SPINNER_LABEL = ""
-
-type Color = int | tuple[int, int, int] | str | None
-
-
-def print_md(text: str, color: Color) -> None:
-    """Print text with sections enclosed by double asterisks in bold."""
-    rendered: list[str] = []
-    position = 0
-    delimiter = "**"
-
-    while (opening := text.find(delimiter, position)) >= 0:
-        closing = text.find(delimiter, opening + len(delimiter))
-        if closing < 0:
-            break
-
-        rendered.append(typer.style(text[position:opening], fg=color))
-        rendered.append(typer.style(text[opening + len(delimiter) : closing], fg=color, bold=True))
-        position = closing + len(delimiter)
-
-    rendered.append(typer.style(text[position:], fg=color))
-    typer.echo("".join(rendered))
+console = Console(theme=theme)
 
 
-def intro(mode: str, gpt_model: str | None, reasoning: str | None, directory: str) -> None:
-    """Print the -framed heading for a design session."""
+class LinePreservingMarkdown(Markdown):
+    def __init__(self, markup: str, style: str) -> None:
+        super().__init__(markup, style=style)
+        for token in self._flatten_tokens(self.parsed):
+            if token.type == "softbreak":
+                token.type = "hardbreak"
 
-    title_row = f"Ralph {mode}"
-    model_row = f"model: {gpt_model} {reasoning}"
-    directory_row = f"directory: {directory}"
-    content_width = max(len(title_row), len(model_row), len(directory_row)) + 10
 
-    def border(text: str) -> str:
-        return typer.style(text, fg=INTRO_DARK)
-
-    typer.echo(border(f"╭{'─' * (content_width + 2)}╮"))
-    typer.echo(
-        border("│ ")
-        + typer.style("Ralph ", fg=INTRO_BRIGHT, bold=True)
-        + typer.style(mode, fg=INTRO_BRIGHT)
-        + typer.style(" " * (content_width - len(title_row)))
-        + border(" │")
-    )
-    typer.echo(border(f"│{' ' * (content_width + 2)}│"))
-    typer.echo(
-        border("│ ")
-        + typer.style("model: ", fg=INTRO_DARK)
-        + typer.style(
-            f"{gpt_model} {reasoning}",
-            fg=INTRO_BRIGHT,
+class LiveRow:
+    def __init__(self, initial_buffering: int = 0) -> None:
+        self.style = "none"
+        self.live = Live(
+            Spinner(name="dots2", text=Text("Thinking", style="metadark"), style="metadark"),
+            console=console,
+            refresh_per_second=15,
         )
-        + typer.style(" " * (content_width - len(model_row)))
-        + border(" │")
-    )
-    typer.echo(
-        border("│ ")
-        + typer.style("directory: ", fg=INTRO_DARK)
-        + typer.style(directory, fg=INTRO_BRIGHT)
-        + typer.style(" " * (content_width - len(directory_row)))
-        + border(" │")
-    )
-    typer.echo(border(f"╰{'─' * (content_width + 2)}╯"))
+        self.buffer = ""
+        self.initial_buffering = initial_buffering
+        self.live.start()
+
+    def text(self, text: Text) -> None:
+        self.live.update(text)
+        self.live.stop()
+
+    def start(self, delta: str, style: str | None = None) -> None:
+        if style:
+            self.style = style
+        self.update(delta)
+
+    def update(self, delta: str) -> None:
+        self.buffer += delta
+        if len(self.buffer) > self.initial_buffering:
+            self.live.update(LinePreservingMarkdown(self.buffer, style=self.style))
+
+    def stop(self) -> None:
+        self.live.stop()
+
+    def match(self, pattern: str) -> bool:
+        return pattern in self.buffer
+
+    def clear(self) -> None:
+        self.buffer = ""
 
 
 def prompt_user() -> str:
-    """Read a response in a Codex CLI-style input block."""
-    terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
-    row = typer.style(
-        " " * max(terminal_width - 1, 1),
-        bg=USER_BACKGROUND,
-    )
+    row = Text(" " * max(console.width - 1, 1), style="user")
 
+    console.print()
     for _ in range(3):
-        typer.echo(row)
-    typer.echo("\033[2A\r", nl=False)
-    typer.echo(
-        typer.style(
-            "› ",
-            fg=USER_FOREGROUND,
-            bg=USER_BACKGROUND,
-            reset=False,
-        ),
-        nl=False,
-    )
+        console.print(row, highlight=False)
+    console.control(Control.move(0, -2))
     try:
-        return input()
-    except EOFError:
-        raise RalphError("Interrupted")
+        console.print("› ", end="", style="user")
+        console.file.write(typer.style("", fg="bright_white", bg=(32, 32, 32), reset=False))
+        console.file.flush()
+        return console.input()
+    except EOFError as ex:
+        raise RalphError("Interrupted") from ex
     finally:
-        typer.echo(typer.style("", reset=True), nl=False)
-        typer.echo()
-
-
-@contextmanager
-def codex_spinner() -> Iterator[None]:
-    """Display an animated Braille spinner while waiting for Codex."""
-    if not sys.stdout.isatty():
-        yield
-        return
-
-    stopped = Event()
-
-    def animate() -> None:
-        frame_index = 0
-        while not stopped.is_set():
-            frame = SPINNER_FRAMES[frame_index % len(SPINNER_FRAMES)]
-            message = typer.style(f"{frame} {SPINNER_LABEL}", fg=CODEX_OUTPUT)
-            typer.echo(f"\r{message}", nl=False)
-            frame_index += 1
-            stopped.wait(SPINNER_INTERVAL)
-
-    typer.echo()
-    worker = Thread(target=animate, daemon=True)
-    worker.start()
-    try:
-        yield
-    finally:
-        stopped.set()
-        worker.join()
-        typer.echo(f"\r{' ' * (len(SPINNER_LABEL) + 2)}\r", nl=False)
+        console.file.write(typer.style("", reset=True))
+        console.print()
+        console.print()
 
 
 def horizontal_line() -> None:
-    """Draw a horizontal line across the full console width."""
-    terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
-    typer.echo()
-    typer.secho("─" * terminal_width, fg=typer.colors.WHITE)
-    typer.echo()
+    console.print()
+    console.print("-" * max(console.width - 1, 1))
+    console.print()
