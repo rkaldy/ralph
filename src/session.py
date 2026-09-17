@@ -1,6 +1,4 @@
-import re
 import sys
-import tomllib
 from pathlib import Path
 from types import TracebackType
 
@@ -12,20 +10,16 @@ from openai_codex.generated.v2_all import (
     ItemCompletedNotification,
     ItemStartedNotification,
     MessagePhase,
-    ReasoningSummaryTextDeltaNotification,
-    ReasoningTextDeltaNotification,
     ReasoningThreadItem,
     TurnCompletedNotification,
     TurnStatus,
 )
 from pydantic import BaseModel, ValidationError
-from rich.syntax import Syntax
-from rich.text import Text
 
+from config import RalphConfig
 from exceptions import RalphError
-from ui import LiveRow, console
+from ui import LiveRow, console, format_command
 
-CODEX_CONFIG_PATH = Path.home() / ".codex/config.toml"
 COMPLETE_MARKER = "<COMPLETE>"
 AGENT_INITIAL_BUFFERING = len(COMPLETE_MARKER) + 3
 SUMMARY_PROMPT = """
@@ -43,6 +37,7 @@ This is a read-only reporting turn:
 class CodexSession:
     def __init__(
         self,
+        config: RalphConfig,
         skill: str,
         model: str | None = None,
         reasoning: str | None = None,
@@ -52,6 +47,7 @@ class CodexSession:
         self.skill = skill
         self.model = model or None
         self.reasoning = reasoning or None
+        self.show_commands = config.SHOW_COMMANDS
 
     def __enter__(self) -> "CodexSession":
         self.codex.__enter__()
@@ -78,22 +74,6 @@ class CodexSession:
     ) -> None:
         self.codex.__exit__(exc_type, exc_val, exc_tb)
 
-    @staticmethod
-    def model_settings() -> tuple[str | None, str | None]:
-        """Load model settings from the user's Codex configuration."""
-        try:
-            with CODEX_CONFIG_PATH.open("rb") as config_file:
-                config = tomllib.load(config_file)
-        except OSError:
-            return None, None
-
-        model = config.get("model")
-        reasoning = config.get("model_reasoning_effort")
-        return (
-            model if isinstance(model, str) and model else None,
-            reasoning if isinstance(reasoning, str) and reasoning else None,
-        )
-
     def _skill_path(self) -> Path:
         checkout_skill = Path(__file__).resolve().parent.parent / f"skills/{self.skill}/SKILL.md"
         installed_skill = Path(sys.prefix) / f"share/ralph/skills/{self.skill}/SKILL.md"
@@ -101,12 +81,6 @@ class CodexSession:
             if path.is_file():
                 return path.resolve()
         raise RalphError(f"'{self.skill}' skill is not installed")
-
-    @staticmethod
-    def _format_command(command: str) -> Text:
-        if match := re.fullmatch(r'/bin/bash\s+-[^\s"]+\s+["\'](.*)["\']', command, flags=re.DOTALL):
-            command = match.group(1)
-        return Syntax("", "bash", theme="monokai").highlight(command)
 
     def prompt(self, prompt: str) -> bool:
         if self.thread is None:
@@ -117,36 +91,24 @@ class CodexSession:
         )
 
         complete: bool = False
-        reasoning_has_delta = False
         row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
         try:
             for event in turn.stream():
                 payload = event.payload
-                # console.print(event.method, style="#808080")
                 if isinstance(payload, ItemStartedNotification):
                     item = payload.item.root
                     if isinstance(item, AgentMessageThreadItem):
                         row.start("")
                     elif isinstance(item, ReasoningThreadItem):
-                        reasoning_has_delta = True
                         row.start("", style="reasoning")
-                    elif isinstance(item, CommandExecutionThreadItem):
-                        row.text(
-                            Text.from_markup("[green][bold]Run[/] ").append_text(
-                                self._format_command(item.command)
-                            )
-                        )
+                    elif isinstance(item, CommandExecutionThreadItem) and self.show_commands:
+                        row.text(format_command(item))
                         row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
                 elif isinstance(payload, AgentMessageDeltaNotification):
                     if row.match(COMPLETE_MARKER):
                         complete = True
                     if not complete:
                         row.update(payload.delta)
-                elif isinstance(
-                    payload,
-                    (ReasoningSummaryTextDeltaNotification, ReasoningTextDeltaNotification),
-                ):
-                    row.update(payload.delta)
                 elif isinstance(payload, ItemCompletedNotification):
                     item = payload.item.root
                     if isinstance(item, AgentMessageThreadItem):
@@ -157,10 +119,9 @@ class CodexSession:
                             console.print()
                             row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
                     elif isinstance(item, ReasoningThreadItem):
-                        if not reasoning_has_delta:
-                            reasoning_text = "\n".join(item.summary or item.content or [])
-                            if reasoning_text:
-                                row.update(reasoning_text)
+                        reasoning_text = "\n".join(item.summary or item.content or [])
+                        if reasoning_text:
+                            row.update(reasoning_text)
                         row.stop()
                         console.print()
                         row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)

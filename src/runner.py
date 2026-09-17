@@ -14,18 +14,16 @@ class CodexRunner:
         self, config: RalphConfig, skill: str, title: str, gpt_model: str | None, reasoning: str | None
     ) -> None:
         self.config = config
-        self.skill = skill
+        self.title = title
+        self.session = CodexSession(config, skill, gpt_model, reasoning)
         self.ralph_dir = Path(".ralph")
         self.ralph_dir.mkdir(exist_ok=True)
-        self.title = title
-        self.gpt_model = gpt_model
-        self.reasoning = reasoning
 
     def run(self) -> None:
         self._intro()
         try:
             self.prepare()
-            with CodexSession(skill=self.skill, model=self.gpt_model, reasoning=self.reasoning) as session:
+            with self.session as session:
                 self.execute(session)
         except Exception as error:
             typer.secho(f"Error: {error}", err=True, fg=typer.colors.BRIGHT_RED)
@@ -37,7 +35,7 @@ class CodexRunner:
             cwd = Path("~") / cwd.relative_to(Path.home())
         intro = (
             f"[metadark][bold]Ralph ◆[/] [meta]{self.title}[/meta]\n\n"
-            f"[metadark]model:[/metadark] [meta]{self.gpt_model} {self.reasoning}\n"
+            f"[metadark]model:[/metadark] [meta]{self.session.model} {self.session.reasoning}\n"
             f"[metadark]directory:[/metadark] [meta]{cwd}"
         )
         ui.console.print(Panel(intro, border_style="metadark", padding=(0, 2)))

@@ -1,9 +1,18 @@
+import re
+
 import typer
+from openai_codex.generated.v2_all import (
+    CommandExecutionThreadItem,
+    ListFilesCommandAction,
+    ReadCommandAction,
+    SearchCommandAction,
+)
 from rich.console import Console
 from rich.control import Control
 from rich.live import Live
 from rich.markdown import Markdown
 from rich.spinner import Spinner
+from rich.syntax import Syntax
 from rich.text import Text
 from rich.theme import Theme
 
@@ -14,7 +23,7 @@ theme = Theme(
         "meta": "#ffe8c8",
         "metabold": "bold #ffe8c8",
         "metadark": "#807870",
-        "command": "#e0ffe0",
+        "command": "#50d050 bold",
         "spinner": "#a08060",
         "user": "#ffffff on #202020",
         "reasoning": "#808080",
@@ -92,3 +101,25 @@ def horizontal_line() -> None:
     console.print()
     console.print("-" * max(console.width - 1, 1))
     console.print()
+
+
+def format_command(item: CommandExecutionThreadItem) -> Text:
+    ret = Text()
+    for action in item.command_actions:
+        root = action.root
+        if isinstance(root, ReadCommandAction):
+            cmd = Text.from_markup(f"[command]Read[/] {root.name}\n")
+        elif isinstance(root, SearchCommandAction):
+            cmd = Text.from_markup(f"[command]Search[/] {root.query or '?'} in {root.path or '?'}\n")
+        elif isinstance(root, ListFilesCommandAction):
+            cmd = Text.from_markup(f"[command]List[/] {root.path or '.'}\n")
+        else:
+            if match := re.fullmatch(r'/bin/bash\s+-[^\s"]+\s+["\'](.*)["\']', root.command, flags=re.DOTALL):
+                command = match.group(1)
+            else:
+                command = root.command
+            cmd = Text.from_markup("Run ", style="command").append_text(
+                Syntax("", "bash", theme="fruity").highlight(f"{command}\n")
+            )
+        ret.append_text(cmd)
+    return ret
