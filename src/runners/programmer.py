@@ -113,7 +113,7 @@ class Programmer(CodexRunner):
         ui.console.print(
             f"[bold]{story.id}: {story.title}[/bold]  iteration [bold]{iteration_num}[/bold]\n",
             style="meta",
-            highlight=False
+            highlight=False,
         )
 
         prompt = self.build_prompt(story, iteration_num)
@@ -141,7 +141,6 @@ class Programmer(CodexRunner):
         self.prd_file = self.ralph_dir / "prd.json"
         self.progress_file = self.ralph_dir / "progress.md"
         self.prd = PRD.model_validate_json(self.prd_file.read_text(encoding="utf-8"))
-        self.progress_file.write_text(f"# {self.prd.name}\n\n", encoding="utf-8")
 
     def execute(self) -> None:
         while (story := self.prd.next_story()) is not None:
