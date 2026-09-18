@@ -1,6 +1,6 @@
 ---
 name: "programmer"
-description: "Implement or repair one Ralph user story selected by the orchestrator from `.ralph/prd.json`, including follow-up iterations for lint, typecheck, or test failures."
+description: "Implement one Ralph user story, or fix lint, typecheck, or test failures of the Ralph user story."
 ---
 
 # Ralph Story Implementation
@@ -10,11 +10,10 @@ Code the single user story identified in the current prompt. Keep the change foc
 ## Context
 
 - Follow all applicable `AGENTS.md` instructions in the workspace.
-- Read all the **Codebase Patterns** and **Gotchas encountered** sections in `.ralph/progress.md`, if the file exists, before making changes.
+- Before making changes, read the `.ralph/progress.md` for global requirements, non-goals, technical constraints, terminology, and dependencies relevant to the selected story.
+- Take attention to of the **Codebase Patterns** and **Gotchas encountered** sections.
+- Other stories in `.ralph/progress.md` are context, not additional implementation scope.
 - Inspect the relevant code and follow established project patterns.
-- Use the original PRD only for global requirements, non-goals, technical constraints, terminology, and dependencies relevant to the selected story.
-- Other stories in the original PRD are context, not additional implementation scope.
-
 
 ## Previous Quality-check Failures
 
@@ -47,12 +46,3 @@ Do not perform any of the following:
 - Stage changes or create Git commits.
 - Make any changes in `.ralph/prd.json` or `.ralph/progress.md`
 - Treat checks run during this turn as the final project quality gate.
-
-## Output
-
-After successful implementation, write a final response with exact text:
-```text
-<COMPLETE>
-```
-
-If the requirements are contradictory, or there are other reason why you are unable to implement it, write a final response with a brief explanation why you can't implement the story.  

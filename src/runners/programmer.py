@@ -111,13 +111,14 @@ class Programmer(CodexRunner):
             ui.console.print()
         self.first = False
         ui.console.print(
-            f"[bold]{story.id}: {story.title}[/bold]  iteration [bold]{iteration_num}[/bold]\n",
+            f"[bold]{story.id}: {story.title}[/bold] "
+            + f"[metadark]◆[/metadark] iteration [bold]#{iteration_num}[/bold]\n",
             style="meta",
             highlight=False,
         )
 
         prompt = self.build_prompt(story, iteration_num)
-        ui.console.print(f"[bold]Prompt:[/bold]\n{prompt}\n", style="prompt")
+        ui.console.print(f"{prompt}\n", style="prompt")
         self.session.prompt(prompt)
 
         return self.run_quality_checks()
@@ -131,10 +132,10 @@ class Programmer(CodexRunner):
             if iteration_num > self.max_iterations:
                 raise RalphError(f"Number of iterations exceeded {self.max_iterations}")
 
+        ui.console.print("\nUpdating progress.md\n", style="meta")
+        self.session.prompt(PROGRESS_PROMPT)
         story.passes = True
         self.prd_file.write_text(self.prd.model_dump_json(indent=2))
-        ui.console.print("Updating progress.md", style="meta")
-        self.session.prompt(PROGRESS_PROMPT)
         ui.console.print(f"\nStory [bold]{story.title}[/bold] completed\n", style="meta", highlight=False)
 
     def prepare(self) -> None:
@@ -144,7 +145,9 @@ class Programmer(CodexRunner):
     def execute(self) -> None:
         if (stories_passed := self.prd.num_passed_stories()) > 0:
             ui.console.print(
-                f"Ralph have already completed {stories_passed} stories. Resuming with the rest.\n"
+                f"Ralph have already completed {stories_passed} stories. Resuming with the rest.\n",
+                style="meta",
+                highlight=False,
             )
         while (story := self.prd.next_story()) is not None:
             self.do_story(story)
