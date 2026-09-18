@@ -1,6 +1,4 @@
-import pydantic
-from pydantic import ConfigDict, BaseModel
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel, ConfigDict
 
 
 class CodexResultBase(BaseModel):
@@ -28,8 +26,5 @@ class PRD(BaseModel):
             default=None,
         )
 
-    def set_passed(self, story_id: str) -> None:
-        for story in self.user_stories:
-            if story.id == story_id:
-                story.passes = True
-                return
+    def num_passed_stories(self) -> int:
+        return sum(1 for story in self.user_stories if story.passes)

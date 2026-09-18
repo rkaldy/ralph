@@ -3,20 +3,26 @@ from enum import Enum
 from pathlib import Path
 
 import typer
-from pydantic import Field
 
 import ui
 from config import RalphConfig
 from exceptions import RalphError
-from models import PRD, CodexResultBase, Story
+from models import PRD, Story
 from runners.runner import CodexRunner
 
-
-class ProgrammingResult(CodexResultBase):
-    description: str = Field(description="Briefly explains what was implemented")
-    files: list[str] = Field(description="Lists every changed file")
-    patterns: list[str] = Field(description="Contains reusable codebase knowledge discovered during the work")
-    gotchas: list[str] = Field(description="Contains pitfalls relevant to later iterations or stories")
+PROGRESS_PROMPT = """
+Update `.ralph/progress.md` with the new codebase pattens and gotchas, you just have discovered in this thread.
+Codebase pattern is a reusable codebase knowledge discovered during your work in this thread. 
+Gotcha is a pitfall relavant to later iteratins, stories or features.
+Rules:
+ - Every codebase pattern is an item in a bullet list in "Codebase Patterns" chapter.
+ - Every gotcha is an item in a bullet list in "Gotchas Encountered" chapter.
+ - Be strict. Use only pattern and gotchas that are important even outside the current story. It's ok you don't 
+   have any pattern or gotcha for this story. The `progess.md` should not bloat with minor pattens. 
+ - Do not duplicate patterns and gotchas. If there is a similar pattern or gotcha in the `progress.md`, don't
+   add anything.
+ - Do not modify any other chapters than "Codebase Patterns" and "Gotchas Encountered".
+"""
 
 
 class QA(Enum):
@@ -34,6 +40,7 @@ class Programmer(CodexRunner):
             gpt_model=config.GPT_MODEL_PROGRAMMER,
             reasoning=config.GPT_REASONING_PROGRAMMER,
         )
+        self.first = True
         self.max_iterations = config.MAX_ITERATIONS
         self.qa_commands = {
             QA.LINT: config.LINT_COMMAND,
@@ -98,18 +105,11 @@ class Programmer(CodexRunner):
         prompt += "Acceptance criteria:\n" + "\n".join([f" - {ac}" for ac in story.acceptance_criteria])
         return prompt
 
-    def update_progress(self, story: Story, result: ProgrammingResult) -> None:
-        summary = (
-            f"## {story.id}: {story.title}\n\n{result.description}\n\n"
-            f"### Files changed\n\n{'\n'.join(f'- {path}' for path in result.files)}\n\n"
-            f"### Codebase Patterns\n\n{'\n'.join(f'- {pattern}' for pattern in result.patterns)}\n\n"
-            f"### Gotchas encountered\n\n{'\n'.join(f'- {gotcha}' for gotcha in result.gotchas)}\n\n"
-        )
-        with self.progress_file.open("a", encoding="utf-8") as progress:
-            progress.write(summary)
-
     def do_iteration(self, story: Story, iteration_num: int) -> bool:
-        ui.horizontal_line()
+        if not self.first:
+            ui.console.print("─" * max(ui.console.width - 1, 1), style="metadark")
+            ui.console.print()
+        self.first = False
         ui.console.print(
             f"[bold]{story.id}: {story.title}[/bold]  iteration [bold]{iteration_num}[/bold]\n",
             style="meta",
@@ -133,15 +133,18 @@ class Programmer(CodexRunner):
 
         story.passes = True
         self.prd_file.write_text(self.prd.model_dump_json(indent=2))
-        ui.console.print("Retrieving summary and updating progress.md", style="meta")
-        self.update_progress(story, self.session.summary(ProgrammingResult))
+        ui.console.print("Updating progress.md", style="meta")
+        self.session.prompt(PROGRESS_PROMPT)
         ui.console.print(f"\nStory [bold]{story.title}[/bold] completed\n", style="meta", highlight=False)
 
     def prepare(self) -> None:
         self.prd_file = self.ralph_dir / "prd.json"
-        self.progress_file = self.ralph_dir / "progress.md"
         self.prd = PRD.model_validate_json(self.prd_file.read_text(encoding="utf-8"))
 
     def execute(self) -> None:
+        if (stories_passed := self.prd.num_passed_stories()) > 0:
+            ui.console.print(
+                f"Ralph have already completed {stories_passed} stories. Resuming with the rest.\n"
+            )
         while (story := self.prd.next_story()) is not None:
             self.do_story(story)
