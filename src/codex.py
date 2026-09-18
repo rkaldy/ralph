@@ -107,24 +107,21 @@ class CodexSession:
                         row.text(format_command(item))
                         row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
                 elif isinstance(payload, AgentMessageDeltaNotification):
-                    if not complete:
-                        row.update(payload.delta)
-                        if row.match(COMPLETE_MARKER):
-                            complete = True
+                    row.update(payload.delta)
+                    if row.match(COMPLETE_MARKER):
+                        complete = True
+                        row.stop()
                 elif isinstance(payload, ItemCompletedNotification):
                     item = payload.item.root
                     if isinstance(item, AgentMessageThreadItem):
-                        row.stop()
+                        row.finish(item.text)
                         if COMPLETE_MARKER in item.text:
                             complete = True
                         if item.phase != MessagePhase.final_answer:
                             console.print()
                             row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
                     elif isinstance(item, ReasoningThreadItem):
-                        reasoning_text = "\n".join(item.summary or item.content or [])
-                        if reasoning_text:
-                            row.update(reasoning_text)
-                        row.stop()
+                        row.finish("\n".join(item.summary or item.content or []))
                         console.print()
                         row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
                 elif isinstance(payload, TurnCompletedNotification):
