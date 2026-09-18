@@ -76,8 +76,15 @@ class Converter:
             progress_file.write(f"# {title}\n")
             progress_file.writelines(contents.text)
             for heading, chapter in contents.chapters.items():
-                if heading != "User Stories":
-                    progress_file.write(f"## {heading}\n")
+                progress_file.write(f"## {heading}\n")
+                if heading == "User Stories":
+                    progress_file.write("\n")
+                    for name, story in chapter.chapters.items():
+                        description = next(line for line in story.text if line.startswith("**Description:**"))
+                        story_description = description.removeprefix("**Description:**").strip()
+                        progress_file.write(f"- **{name}** - {story_description}\n")
+                    progress_file.write("\n")
+                else:
                     progress_file.writelines(chapter.text)
             progress_file.write("\n## Codebase Patterns\n\n## Gotchas Encountered\n")
 
