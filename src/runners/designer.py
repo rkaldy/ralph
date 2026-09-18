@@ -34,7 +34,7 @@ class Designer(CodexRunner):
             complete = self.session.prompt(answer)
 
         summary = self.session.summary(DesignResult)
-        prd_file = self.ralph_dir / f"tasks/{summary.prd_file}"
+        prd_file = self.ralph_dir / "tasks" / summary.prd_file
         if not prd_file.is_file():
             raise RalphError(f"Codex did not create {prd_file}")
 

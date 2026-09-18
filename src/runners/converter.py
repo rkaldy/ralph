@@ -5,6 +5,7 @@ from pathlib import Path
 import ui
 from config import RalphConfig
 from models import PRD, Story
+from runners.runner import CodexRunner
 
 
 @dataclass
@@ -13,11 +14,12 @@ class MarkdownChapter:
     chapters: dict[str, "MarkdownChapter"] = field(default_factory=dict)
 
 
-class Converter:
+class Converter(CodexRunner):
     HEADING = re.compile(r"(#{1,6}) (.*)\n")
     USER_STORY = re.compile(r"([A-Z0-9\-]*): (.*)")
 
     def __init__(self, config: RalphConfig, prd_file: Path) -> None:
+        super().__init__(config, "", "PRD Converter", None, None)
         self.prd_file = prd_file
         self.prd_markdown = MarkdownChapter()
 
@@ -64,14 +66,14 @@ class Converter:
             )
             priority += 1
 
-        json_file = Path(".ralph/prd.json")
+        json_file = self.ralph_dir / "prd.json"
         json_file.write_text(prd.model_dump_json(indent=2), encoding="utf-8")
         ui.console.print(
             f"\nConversion completed. The generated JSON is at [bold]{json_file}[/bold]", style="meta"
         )
 
     def create_progress_file(self) -> None:
-        with open(Path(".ralph/progress.md"), "w") as progress_file:
+        with open(self.ralph_dir / "progress.md", "w") as progress_file:
             title, contents = next(iter(self.prd_markdown.chapters.items()))
             progress_file.write(f"# {title}\n")
             progress_file.writelines(contents.text)
@@ -91,6 +93,7 @@ class Converter:
         ui.console.print(f"Progress initialized at [bold]{progress_file.name}[/bold]", style="meta")
 
     def run(self) -> None:
+        self.intro()
         self.parse_markdown()
         self.create_prd_json()
         self.create_progress_file()

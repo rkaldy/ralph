@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 
@@ -18,14 +19,16 @@ def git(repository: Path, *args: str) -> str:
 
 
 @pytest.fixture
-def repository(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def repository(tmp_path: Path, request: pytest.FixtureRequest) -> Path:
     git(tmp_path, "init", "-b", "main")
     git(tmp_path, "config", "user.name", "Ralph Test")
     git(tmp_path, "config", "user.email", "ralph@example.test")
     (tmp_path / "README.md").write_text("Initial\n", encoding="utf-8")
     git(tmp_path, "add", "README.md")
     git(tmp_path, "commit", "-m", "Initial commit")
-    monkeypatch.chdir(tmp_path)
+    original_cwd = Path.cwd()
+    os.chdir(tmp_path)
+    request.addfinalizer(lambda: os.chdir(original_cwd))
     return tmp_path
 
 

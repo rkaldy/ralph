@@ -9,4 +9,4 @@ lint:  # Run code lint with ruff and mypy
 	uv run mypy
 
 test:  # Run the complete test suite
-	uv run pytest
+	uv run pytest -vv
