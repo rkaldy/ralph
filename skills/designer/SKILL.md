@@ -7,8 +7,6 @@ description: "Generate a Product Requirements Document (PRD) for a new feature. 
 
 Create detailed Product Requirements Documents that are clear, actionable, and suitable for implementation.
 
----
-
 ## The Job
 
 1. Receive a feature description from the user
@@ -17,8 +15,6 @@ Create detailed Product Requirements Documents that are clear, actionable, and s
 4. Save to `.ralph/tasks/prd-[feature-name].md`
 
 **Important:** Do NOT start implementing. Just create the PRD.
-
----
 
 ## Step 1: Clarifying Questions
 
@@ -53,8 +49,6 @@ Ask only critical questions where the initial prompt is ambiguous. Focus on:
 
 This lets users respond with "1A, 2C, 3B" for quick iteration. Remember to indent the options.
 
----
-
 ## Step 2: PRD Structure
 
 Generate the PRD with these sections:
@@ -84,9 +78,58 @@ Each story should be small enough to implement in one focused session.
 - [ ] **[UI stories only]** Verify in browser using dev-browser skill
 ```
 
-**Important:** 
-- Acceptance criteria must be verifiable, not vague. "Works correctly" is bad. "Button shows confirmation dialog before deleting" is good.
-- **For any story with UI changes:** Always include "Verify in browser using dev-browser skill" as acceptance criteria. This ensures visual verification of frontend work.
+#### Story Size: The Number One Rule
+
+**Each story must be completable in ONE Ralph iteration (one context window).**
+
+Ralph spawns a fresh Amp instance per iteration with no memory of previous work. If a story is too big, the LLM runs out of context before finishing and produces broken code.
+
+##### Right-sized stories:
+- Add a database column and migration
+- Add a UI component to an existing page
+- Update a server action with new logic
+- Add a filter dropdown to a list
+
+##### Too big (split these):
+- "Build the entire dashboard" - Split into: schema, queries, UI components, filters
+- "Add authentication" - Split into: schema, middleware, login UI, session handling
+- "Refactor the API" - Split into one story per endpoint or pattern
+
+**Rule of thumb:** If you cannot describe the change in 2-3 sentences, it is too big.
+
+#### Story Ordering: Dependencies First
+
+Stories execute in priority order. Earlier stories must not depend on later ones.
+
+##### Correct Order
+
+1. Schema/database changes (migrations)
+2. Server actions / backend logic
+3. UI components that use the backend
+4. Dashboard/summary views that aggregate data
+
+##### Wrong Order
+
+1. UI component (depends on schema that does not exist yet)
+2. Schema change
+
+#### Acceptance Criteria: Must Be Verifiable
+
+Each criterion must be something Ralph can CHECK, not something vague.
+
+##### Good criteria (verifiable):
+- "Add `status` column to tasks table with default 'pending'"
+- "Filter dropdown has options: All, Active, Completed"
+- "Clicking delete shows confirmation dialog"
+- "Typecheck passes"
+- "Tests pass"
+
+##### Bad criteria (vague):
+- "Works correctly"
+- "User can do X easily"
+- "Good UX"
+- "Handles edge cases"
+
 
 ### 4. Functional Requirements
 Numbered list of specific functionalities:
@@ -116,7 +159,6 @@ How will success be measured?
 ### 9. Open Questions
 Remaining questions or areas needing clarification.
 
----
 
 ## Writing for Junior Developers
 
@@ -127,8 +169,6 @@ The PRD reader may be a junior developer or AI agent. Therefore:
 - Provide enough detail to understand purpose and core logic
 - Number requirements for easy reference
 - Use concrete examples where helpful
-
----
 
 ## Output
 
@@ -146,8 +186,6 @@ After successfully creating the file, write a final response with exact text:
 ```text
 <COMPLETE>
 ```
-
----
 
 ## Example PRD
 
@@ -236,15 +274,16 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 - Should we add keyboard shortcuts for priority changes?
 ```
 
----
-
 ## Checklist
 
 Before saving the PRD:
 
 - [ ] Asked clarifying questions with lettered options
 - [ ] Incorporated user's answers
-- [ ] User stories are small and specific
+- [ ] Each story is completable in one iteration (small enough)
+- [ ] Stories are ordered by dependency (schema to backend to UI)
+- [ ] Acceptance criteria are verifiable (not vague)
+- [ ] No story depends on a later story
 - [ ] Functional requirements are numbered and unambiguous
 - [ ] Non-goals section defines clear boundaries
 - [ ] Saved to `.ralph/tasks/prd-[feature-name].md`

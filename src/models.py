@@ -1,14 +1,6 @@
 import pydantic
-from pydantic import ConfigDict
+from pydantic import ConfigDict, BaseModel
 from pydantic.alias_generators import to_camel
-
-
-class BaseModel(pydantic.BaseModel):
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        validate_by_alias=True,
-        validate_by_name=True,
-    )
 
 
 class CodexResultBase(BaseModel):
@@ -27,7 +19,6 @@ class Story(BaseModel):
 class PRD(BaseModel):
     name: str
     branch_name: str
-    description: str
     user_stories: list[Story]
 
     def next_story(self) -> Story | None:
