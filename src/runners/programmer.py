@@ -7,6 +7,7 @@ import typer
 import ui
 from config import RalphConfig
 from exceptions import RalphError
+from git import commit_story, prepare_branch
 from models import PRD, Story
 from runners.runner import CodexRunner
 
@@ -47,58 +48,6 @@ class Programmer(CodexRunner):
             QA.TYPECHECK: config.TYPECHECK_COMMAND,
             QA.TEST: config.TEST_COMMAND,
         }
-
-    @staticmethod
-    def run_git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
-        result = subprocess.run(
-            ["git", *args],
-            cwd=Path.cwd(),
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-        if check and result.returncode != 0:
-            output = result.stderr.strip() or result.stdout.strip() or "Unknown Git error"
-            raise RalphError(f"Git command failed: {output}")
-        return result
-
-    def prepare_branch(self) -> None:
-        branch_name = self.prd.branch_name
-        self.run_git("check-ref-format", "--branch", branch_name)
-
-        current_branch = self.run_git("branch", "--show-current").stdout.strip()
-        if current_branch == branch_name:
-            return
-
-        branch = self.run_git("show-ref", "--verify", "--quiet", f"refs/heads/{branch_name}", check=False)
-        if branch.returncode == 0:
-            self.run_git("switch", "--", branch_name)
-        elif branch.returncode == 1:
-            self.run_git("switch", "-c", branch_name)
-        else:
-            output = branch.stderr.strip() or branch.stdout.strip() or "Could not inspect Git branch"
-            raise RalphError(f"Git command failed: {output}")
-
-        ui.console.print(f"Using Git branch [bold]{branch_name}[/bold]\n", style="meta", highlight=False)
-
-    def commit_story(self, story: Story) -> None:
-        self.run_git("add", "--all")
-        staged_changes = self.run_git("diff", "--cached", "--quiet", check=False)
-        if staged_changes.returncode == 0:
-            ui.console.print("No changes to commit\n", style="meta")
-            return
-        if staged_changes.returncode != 1:
-            output = (
-                staged_changes.stderr.strip()
-                or staged_changes.stdout.strip()
-                or "Could not inspect staged changes"
-            )
-            raise RalphError(f"Git command failed: {output}")
-
-        self.run_git("commit", "-m", story.title)
-        ui.console.print(f"Committed changes: [bold]{story.title}[/bold]\n", style="meta", highlight=False)
 
     def delete_qa_results(self) -> None:
         for qa in QA:
@@ -188,13 +137,16 @@ class Programmer(CodexRunner):
         self.session.prompt(PROGRESS_PROMPT)
         story.passes = True
         self.prd_file.write_text(self.prd.model_dump_json(indent=2))
-        self.commit_story(story)
+        commit_story(story.title)
         ui.console.print(f"\nStory [bold]{story.title}[/bold] completed\n", style="meta", highlight=False)
 
     def prepare(self) -> None:
         self.prd_file = self.ralph_dir / "prd.json"
         self.prd = PRD.model_validate_json(self.prd_file.read_text(encoding="utf-8"))
-        self.prepare_branch()
+        prepare_branch(self.prd.branch_name)
+        ui.console.print(
+            f"Using Git branch [bold]{self.prd.branch_name}[/bold]\n", style="meta", highlight=False
+        )
 
     def execute(self) -> None:
         if (stories_passed := self.prd.num_passed_stories()) > 0:
