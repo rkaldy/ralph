@@ -1,14 +1,17 @@
 import subprocess
 from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock, call
 
 import pytest
+from pydantic import ValidationError
 
 import runners.runner as runner_module
 import ui
 from config import RalphConfig
-from models import Story
-from runners.programmer import QA, Programmer
+from exceptions import RalphError
+from models import PRD, Story
+from runners.programmer import PROGRESS_PROMPT, QA, Programmer
 
 
 def make_config() -> RalphConfig:
@@ -218,4 +221,162 @@ The test checker found errors, its output is stored in the file `.ralph/test-res
 Acceptance criteria:
  - Run every configured quality check
  - Include failed check output in retry context"""
+    )
+
+
+def test_do_iteration_displays_story_sends_prompt_and_returns_quality_outcome(
+    programmer: tuple[Programmer, MagicMock, MagicMock],
+    story: Story,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    instance, _, session = programmer
+    prompt = "constructed prompt"
+    build_prompt = MagicMock(name="build_prompt", return_value=prompt)
+    run_quality_checks = MagicMock(name="run_quality_checks", return_value=False)
+    monkeypatch.setattr(instance, "build_prompt", build_prompt)
+    monkeypatch.setattr(instance, "run_quality_checks", run_quality_checks)
+
+    result = instance.do_iteration(story, iteration_num=3)
+
+    assert result is False
+    console = cast(MagicMock, ui.console)
+    assert console.print.call_args_list == [
+        call(
+            "[bold]US-007: Quality-check helpers[/bold] [metadark]◆[/metadark] iteration [bold]#3[/bold]\n",
+            style="meta",
+            highlight=False,
+        ),
+        call(f"{prompt}\n", style="prompt"),
+    ]
+    build_prompt.assert_called_once_with(story, 3)
+    session.prompt.assert_called_once_with(prompt)
+    run_quality_checks.assert_called_once_with()
+
+
+def test_do_story_retries_then_updates_progress_marks_passed_and_persists_prd(
+    programmer: tuple[Programmer, MagicMock, MagicMock],
+    story: Story,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    instance, _, session = programmer
+    instance.prd = PRD(name="QA feature", branch_name="ralph/qa-feature", user_stories=[story])
+    instance.prd_file = instance.ralph_dir / "prd.json"
+    for qa in QA:
+        (instance.ralph_dir / f"{qa.value}-result.txt").write_text("stale", encoding="utf-8")
+    do_iteration = MagicMock(name="do_iteration", side_effect=[False, True])
+    commit_story = MagicMock(name="commit_story")
+    monkeypatch.setattr(instance, "do_iteration", do_iteration)
+    monkeypatch.setattr(instance, "commit_story", commit_story)
+
+    instance.do_story(story)
+
+    assert all(not (instance.ralph_dir / f"{qa.value}-result.txt").exists() for qa in QA)
+    session.start_thread.assert_called_once_with()
+    assert do_iteration.call_args_list == [call(story, 1), call(story, 2)]
+    session.prompt.assert_called_once_with(PROGRESS_PROMPT)
+    assert story.passes is True
+    assert PRD.model_validate_json(instance.prd_file.read_text(encoding="utf-8")) == instance.prd
+    commit_story.assert_called_once_with(story)
+
+
+def test_do_story_raises_after_max_iterations_without_marking_story_passed(
+    programmer: tuple[Programmer, MagicMock, MagicMock],
+    story: Story,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    instance, _, session = programmer
+    instance.max_iterations = 2
+    do_iteration = MagicMock(name="do_iteration", return_value=False)
+    commit_story = MagicMock(name="commit_story")
+    monkeypatch.setattr(instance, "do_iteration", do_iteration)
+    monkeypatch.setattr(instance, "commit_story", commit_story)
+
+    with pytest.raises(RalphError, match="Number of iterations exceeded 2"):
+        instance.do_story(story)
+
+    assert do_iteration.call_args_list == [call(story, 1), call(story, 2)]
+    assert story.passes is False
+    session.prompt.assert_not_called()
+    commit_story.assert_not_called()
+
+
+def test_prepare_loads_and_validates_prd_from_working_directory(
+    programmer: tuple[Programmer, MagicMock, MagicMock],
+    story: Story,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    instance, _, _ = programmer
+    expected = PRD(name="QA feature", branch_name="ralph/qa-feature", user_stories=[story])
+    prd_file = Path(".ralph/prd.json")
+    prd_file.write_text(expected.model_dump_json(), encoding="utf-8")
+    prepare_branch = MagicMock(name="prepare_branch")
+    monkeypatch.setattr(instance, "prepare_branch", prepare_branch)
+
+    instance.prepare()
+
+    assert instance.prd_file == prd_file
+    assert instance.prd == expected
+    prepare_branch.assert_called_once_with()
+
+
+def test_prepare_rejects_an_invalid_prd(
+    programmer: tuple[Programmer, MagicMock, MagicMock],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    instance, _, _ = programmer
+    Path(".ralph/prd.json").write_text('{"name": "Missing required fields"}', encoding="utf-8")
+    prepare_branch = MagicMock(name="prepare_branch")
+    monkeypatch.setattr(instance, "prepare_branch", prepare_branch)
+
+    with pytest.raises(ValidationError):
+        instance.prepare()
+
+    prepare_branch.assert_not_called()
+
+
+def test_execute_skips_completed_stories_and_processes_remaining_by_priority(
+    programmer: tuple[Programmer, MagicMock, MagicMock],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    instance, _, _ = programmer
+    completed = Story(
+        id="US-001",
+        title="Completed",
+        description="Already complete",
+        priority=1,
+        acceptance_criteria=[],
+        passes=True,
+    )
+    last = Story(
+        id="US-003",
+        title="Last",
+        description="Lower priority",
+        priority=3,
+        acceptance_criteria=[],
+        passes=False,
+    )
+    first = Story(
+        id="US-002",
+        title="First",
+        description="Higher priority",
+        priority=2,
+        acceptance_criteria=[],
+        passes=False,
+    )
+    instance.prd = PRD(
+        name="Prioritized feature",
+        branch_name="ralph/prioritized-feature",
+        user_stories=[last, completed, first],
+    )
+    do_story = MagicMock(name="do_story", side_effect=lambda current: setattr(current, "passes", True))
+    monkeypatch.setattr(instance, "do_story", do_story)
+
+    instance.execute()
+
+    assert do_story.call_args_list == [call(first), call(last)]
+    console = cast(MagicMock, ui.console)
+    console.print.assert_called_once_with(
+        "Ralph have already completed 1 stories. Resuming with the rest.\n",
+        style="meta",
+        highlight=False,
     )
