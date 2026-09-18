@@ -107,10 +107,10 @@ class CodexSession:
                         row.text(format_command(item))
                         row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
                 elif isinstance(payload, AgentMessageDeltaNotification):
-                    if row.match(COMPLETE_MARKER):
-                        complete = True
                     if not complete:
                         row.update(payload.delta)
+                        if row.match(COMPLETE_MARKER):
+                            complete = True
                 elif isinstance(payload, ItemCompletedNotification):
                     item = payload.item.root
                     if isinstance(item, AgentMessageThreadItem):
