@@ -96,11 +96,6 @@ def prompt_user() -> str:
         console.print()
 
 
-def horizontal_line() -> None:
-    console.print("─" * max(console.width - 1, 1), style="metadark")
-    console.print()
-
-
 def format_command(item: CommandExecutionThreadItem) -> Text:
     ret = Text()
     for action in item.command_actions:
