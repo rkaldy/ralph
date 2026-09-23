@@ -50,6 +50,7 @@ class LiveRow:
         )
         self.buffer = ""
         self.initial_buffering = initial_buffering
+        self.stopped = False
         self.live.start()
 
     def text(self, text: Text) -> None:
@@ -62,12 +63,22 @@ class LiveRow:
         self.update(delta)
 
     def update(self, delta: str) -> None:
+        if self.stopped:
+            return
         self.buffer += delta
         if len(self.buffer) > self.initial_buffering:
             self.live.update(LinePreservingMarkdown(self.buffer, style=self.style))
 
+    def finish(self, text: str) -> None:
+        if self.stopped:
+            return
+        self.live.update(LinePreservingMarkdown(text, style=self.style))
+        self.live.stop()
+        self.stopped = True
+
     def stop(self) -> None:
         self.live.stop()
+        self.stopped = True
 
     def match(self, pattern: str) -> bool:
         return pattern in self.buffer
