@@ -72,7 +72,7 @@ ralph designer FEATURE
 ```
 or
 ```bash
-ralph designer -f feature.txt
+ralph designer -f <feature-file>
 ```
 
 Starts an interactive requirements session for a high-level feature description. Codex asks clarifying questions and splits the feature into stories.
@@ -85,7 +85,11 @@ The result is written into a PRD:
 ```
 Review and edit the PRD before continuing.
 
-### `ralph converter PRD`
+### Converter
+
+```bash
+ralph converter .ralph/tasks/<prd-file>
+```
 
 Parses a Ralph-formatted Markdown PRD and creates:
 
@@ -94,7 +98,11 @@ Parses a Ralph-formatted Markdown PRD and creates:
 
 Story headings, descriptions, and unchecked acceptance-criteria items are converted directly into JSON. Other PRD sections are preserved in `progress.md` as implementation context.
 
-### `ralph programmer`
+### Programmer
+
+```bash
+ralph programmer
+```
 
 Loads `.ralph/prd.json`, switches to or creates the PRD's Git branch, and processes incomplete stories in priority order. For every story Ralph:
 
