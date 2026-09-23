@@ -1,20 +1,15 @@
 import json
 from pathlib import Path
 
+import pytest
 from pytest_mock import MockerFixture
 
 from ralph.config import RalphConfig
 from ralph.runners.converter import Converter
 
 
-def test_converter_happy_path(
-    mocker: MockerFixture,
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    mocker.patch("ralph.ui.console", autospec=True)
-
+@pytest.fixture
+def prd_file(tmp_path: Path) -> Path:
     prd_file = tmp_path / "offline-reading.md"
     prd_file.write_text(
         """# PRD: Offline Reading
@@ -41,13 +36,18 @@ Let readers save articles and continue reading without a network connection.
 """,
         encoding="utf-8",
     )
+    return prd_file
 
-    converter = Converter(RalphConfig.model_construct(), prd_file)
 
-    converter.run()
+def test_converter_happy_path(
+    mocker: MockerFixture, monkeypatch, tmp_path: Path, prd_file: Path, live_mock, console_mock
+):
+    monkeypatch.chdir(tmp_path)
 
-    prd = json.loads((tmp_path / ".ralph" / "prd.json").read_text(encoding="utf-8"))
-    assert prd == {
+    Converter(RalphConfig.model_construct(), prd_file).run()
+
+    prd_json = json.loads((tmp_path / ".ralph" / "prd.json").read_text(encoding="utf-8"))
+    assert prd_json == {
         "name": "Offline Reading",
         "branch_name": "offline-reading",
         "user_stories": [
@@ -79,15 +79,21 @@ Let readers save articles and continue reading without a network connection.
     }
 
     progress = (tmp_path / ".ralph" / "progress.md").read_text(encoding="utf-8")
-    assert "# PRD: Offline Reading" in progress
-    assert "## Overview" in progress
-    assert "Let readers save articles and continue reading without a network connection." in progress
     assert (
-        "- **US-001: Save an article for offline reading** - As a reader, I want to save an "
-        "article so I can read it without a connection."
-    ) in progress
-    assert (
-        "- **US-002: Open a saved article** - As a reader, I want to open saved articles while I am offline."
-    ) in progress
-    assert "## Codebase Patterns" in progress
-    assert "## Gotchas Encountered" in progress
+        progress
+        == """# PRD: Offline Reading
+
+## Overview
+
+Let readers save articles and continue reading without a network connection.
+
+## User Stories
+
+- **US-001: Save an article for offline reading** - As a reader, I want to save an article so I can read it without a connection.
+- **US-002: Open a saved article** - As a reader, I want to open saved articles while I am offline.
+
+## Codebase Patterns
+
+## Gotchas Encountered
+"""
+    )

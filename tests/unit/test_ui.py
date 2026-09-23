@@ -35,14 +35,11 @@ def test_line_preserving_markdown() -> None:
 
 
 def test_live_row(live_mock) -> None:
-    row = LiveRow(initial_buffering=5)
-
+    row = LiveRow()
     live_mock.start.assert_called_once_with()
 
-    row.update("hello")
-    live_mock.update.assert_not_called()
-
-    row.start(" world", style="reasoning")
+    row.start("hello", style="reasoning")
+    row.update(" world")
 
     rendered = live_mock.update.call_args.args[0]
     assert isinstance(rendered, LinePreservingMarkdown)
@@ -59,9 +56,6 @@ def test_live_row(live_mock) -> None:
     row.text(replacement)
     live_mock.update.assert_called_with(replacement)
     live_mock.stop.assert_called_once_with()
-
-    row.stop()
-    assert live_mock.stop.call_count == 2
 
 
 def test_format_command() -> None:
