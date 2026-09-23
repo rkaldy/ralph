@@ -88,7 +88,7 @@ class Converter(CodexRunner):
                     progress_file.write("\n")
                 else:
                     progress_file.writelines(chapter.text)
-            progress_file.write("\n## Codebase Patterns\n\n## Gotchas Encountered\n")
+            progress_file.write("## Codebase Patterns\n\n## Gotchas Encountered\n")
 
         ui.console.print(f"Progress initialized at [bold]{progress_file.name}[/bold]", style="meta")
 

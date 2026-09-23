@@ -41,7 +41,7 @@ class LinePreservingMarkdown(Markdown):
 
 
 class LiveRow:
-    def __init__(self, initial_buffering: int = 0) -> None:
+    def __init__(self) -> None:
         self.style = "none"
         self.live = Live(
             Spinner(name="dots2", text=Text("Thinking", style="metadark"), style="metadark"),
@@ -49,7 +49,6 @@ class LiveRow:
             refresh_per_second=15,
         )
         self.buffer = ""
-        self.initial_buffering = initial_buffering
         self.stopped = False
         self.live.start()
 
@@ -66,17 +65,12 @@ class LiveRow:
         if self.stopped:
             return
         self.buffer += delta
-        if len(self.buffer) > self.initial_buffering:
-            self.live.update(LinePreservingMarkdown(self.buffer, style=self.style))
+        self.live.update(LinePreservingMarkdown(self.buffer, style=self.style))
 
     def finish(self, text: str) -> None:
         if self.stopped:
             return
         self.live.update(LinePreservingMarkdown(text, style=self.style))
-        self.live.stop()
-        self.stopped = True
-
-    def stop(self) -> None:
         self.live.stop()
         self.stopped = True
 

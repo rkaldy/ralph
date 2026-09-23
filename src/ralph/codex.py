@@ -13,24 +13,10 @@ from openai_codex.generated.v2_all import (
     TurnCompletedNotification,
     TurnStatus,
 )
-from pydantic import BaseModel, ValidationError
 
 from ralph.config import RalphConfig
 from ralph.exceptions import RalphError
 from ralph.ui import LiveRow, console, format_command
-
-COMPLETE_MARKER = "<COMPLETE>"
-AGENT_INITIAL_BUFFERING = len(COMPLETE_MARKER) + 3
-SUMMARY_PROMPT = """
-Report the outcome of the thread using the supplied output schema.
-This is a read-only reporting turn:
-  - Do not continue or redo the work.
-  - Do not modify files or execute commands.
-  - Report only actions, results, and artifacts actually produced by this thread.
-  - Do not infer success from plans, intentions, or expected output paths.
-  - Use null or empty collections when optional information is unavailable.
-  - Return no user-facing explanation; the result is consumed by the orchestrator.
-"""
 
 
 class CodexSession:
@@ -81,7 +67,7 @@ class CodexSession:
             ),
         )
 
-    def prompt(self, prompt: str) -> bool:
+    def prompt(self, prompt: str) -> None:
         if self.thread is None:
             raise RalphError("Codex thread not started")
 
@@ -89,8 +75,7 @@ class CodexSession:
             [TextInput(text=prompt), SkillInput(name=self.skill, path=str(self._skill_path()))],
         )
 
-        complete: bool = False
-        row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
+        row = LiveRow()
         try:
             for event in turn.stream():
                 payload = event.payload
@@ -102,48 +87,24 @@ class CodexSession:
                         row.start("", style="reasoning")
                     elif isinstance(item, CommandExecutionThreadItem) and self.show_commands:
                         row.text(format_command(item))
-                        row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
+                        row = LiveRow()
                 elif isinstance(payload, AgentMessageDeltaNotification):
                     row.update(payload.delta)
-                    if row.match(COMPLETE_MARKER):
-                        complete = True
-                        row.stop()
                 elif isinstance(payload, ItemCompletedNotification):
                     item = payload.item.root
                     if isinstance(item, AgentMessageThreadItem):
                         row.finish(item.text)
-                        if COMPLETE_MARKER in item.text:
-                            complete = True
                         if item.phase != MessagePhase.final_answer:
                             console.print()
-                            row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
+                            row = LiveRow()
                     elif isinstance(item, ReasoningThreadItem):
                         row.finish("\n".join(item.summary or item.content or []))
                         console.print()
-                        row = LiveRow(initial_buffering=AGENT_INITIAL_BUFFERING)
+                        row = LiveRow()
                 elif isinstance(payload, TurnCompletedNotification):
                     if payload.turn.status == TurnStatus.interrupted:
                         raise RalphError("Interrupted")
                     elif payload.turn.status == TurnStatus.failed:
                         raise RalphError(payload.turn.error)
         finally:
-            row.stop()
-
-        return complete
-
-    def summary[ResponseT: BaseModel](self, response_model: type[ResponseT]) -> ResponseT:
-        if self.thread is None:
-            raise RalphError("Codex thread not started")
-
-        result = self.thread.run(
-            [TextInput(text=SUMMARY_PROMPT)],
-            output_schema=response_model.model_json_schema(),
-        )
-        if result.status == TurnStatus.failed:
-            raise RalphError(result.error)
-        if not result.final_response:
-            raise RalphError("Codex returned no final response")
-        try:
-            return response_model.model_validate_json(result.final_response)
-        except ValidationError as error:
-            raise RalphError(f"Codex returned an invalid structured response: {error}") from error
+            row.finish("")

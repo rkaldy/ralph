@@ -1,16 +1,9 @@
-from pydantic import Field
+from pathlib import Path
 
 from ralph import ui
 from ralph.config import RalphConfig
 from ralph.exceptions import RalphError
-from ralph.models import CodexResultBase
 from ralph.runners.runner import CodexRunner
-
-
-class DesignResult(CodexResultBase):
-    prd_file: str = Field(
-        description=("Name of the generated PRD. Do not include path. Null if no PRD was generated.")
-    )
 
 
 class Designer(CodexRunner):
@@ -23,20 +16,29 @@ class Designer(CodexRunner):
             reasoning=config.GPT_REASONING_DESIGNER,
         )
         self.feature = feature
+        self.task_dir = self.ralph_dir / "tasks"
+        self.prds: set[Path] = set()
+
+    def _new_prd_created(self) -> Path | None:
+        prds = set(self.task_dir.glob("*.md"))
+        new_prds = prds - self.prds
+        if len(new_prds) == 1:
+            return next(iter(new_prds))
+        elif len(new_prds) > 1:
+            raise RalphError(f"There are more than one new PRD in {self.task_dir}")
+        else:
+            return None
 
     def execute(self) -> None:
-        self.session.start_thread()
-        complete = self.session.prompt(
-            f"Make an interactive user session for creating a PRD for this feature: {self.feature}",
-        )
-        while not complete:
-            answer = ui.prompt_user()
-            complete = self.session.prompt(answer)
+        self.prds = set(self.task_dir.glob("*.md"))
 
-        summary = self.session.summary(DesignResult)
-        prd_file = self.ralph_dir / "tasks" / summary.prd_file
-        if not prd_file.is_file():
-            raise RalphError(f"Codex did not create {prd_file}")
+        self.session.start_thread()
+        self.session.prompt(
+            f"Make an interactive user session for creating a PRD for this feature:\n\n{self.feature}",
+        )
+        while not (prd_file := self._new_prd_created()):
+            answer = ui.prompt_user()
+            self.session.prompt(answer)
 
         ui.console.print(f"\nDesign completed. The generated PRD is [bold]{prd_file}[/bold]", style="meta")
         ui.console.print(

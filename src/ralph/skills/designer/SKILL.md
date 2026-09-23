@@ -182,11 +182,6 @@ replace spaces and punctuation with single hyphens, and remove leading or
 trailing hyphens. For example, `Task Priority System` becomes
 `task-priority-system`.
 
-After successfully creating the file, write a final response with exact text:
-```text
-<COMPLETE>
-```
-
 ## Example PRD
 
 ```markdown
