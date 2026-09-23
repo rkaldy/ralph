@@ -26,7 +26,7 @@ Ralph is packaged as the Python package `ralph`. The recommended way to install 
 environment is directly from GitHub with `uv tool`:
 
 ```console
-uv tool install git+ssh://git@github.com/rkaldy/ralph.git
+uv tool install git+https://github.com/rkaldy/ralph.git
 ```
 
 This installs the `ralph` command, its Python package, and the bundled Codex skills. 
@@ -48,11 +48,6 @@ Create a `ralph.ini` file in the project root directory.
 LINT_COMMAND=uv run ruff check .
 TYPECHECK_COMMAND=uv run mypy
 TEST_COMMAND=uv run pytest
-
-GPT_MODEL_DESIGNER=
-GPT_REASONING_DESIGNER=
-GPT_MODEL_PROGRAMMER=
-GPT_REASONING_PROGRAMMER=
 ```
 
 Then run the workflow from that project:
@@ -153,3 +148,7 @@ globally with `uv tool install --editable .`. Use the Makefile targets for local
 make lint
 make test
 ```
+
+## License
+
+Ralph is distributed under the [BSD 3-Clause License](LICENSE).
