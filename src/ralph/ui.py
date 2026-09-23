@@ -16,7 +16,7 @@ from rich.syntax import Syntax
 from rich.text import Text
 from rich.theme import Theme
 
-from exceptions import RalphError
+from ralph.exceptions import RalphError
 
 theme = Theme(
     {

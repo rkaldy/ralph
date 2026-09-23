@@ -3,12 +3,12 @@ from openai_codex.generated.v2_all import CommandExecutionThreadItem
 from pytest_mock import MockFixture
 from rich.text import Text
 
-from ui import LinePreservingMarkdown, LiveRow, format_command
+from ralph.ui import LinePreservingMarkdown, LiveRow, format_command
 
 
 @pytest.fixture
 def live_mock(mocker: MockFixture):
-    live_class_mock = mocker.patch("ui.Live", autospec=True)
+    live_class_mock = mocker.patch("ralph.ui.Live", autospec=True)
     return live_class_mock.return_value
 
 

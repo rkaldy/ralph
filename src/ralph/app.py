@@ -3,10 +3,10 @@ from typing import Annotated
 
 import typer
 
-from config import RalphConfig
-from runners.converter import Converter
-from runners.designer import Designer
-from runners.programmer import Programmer
+from ralph.config import RalphConfig
+from ralph.runners.converter import Converter
+from ralph.runners.designer import Designer
+from ralph.runners.programmer import Programmer
 
 app = typer.Typer(no_args_is_help=True)
 

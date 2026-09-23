@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-import config as config_module
-from config import RalphConfig
+from ralph import config as config_module
+from ralph.config import RalphConfig
 
 
 @pytest.fixture

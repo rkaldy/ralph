@@ -4,12 +4,12 @@ from pathlib import Path
 
 import typer
 
-import ui
-from config import RalphConfig
-from exceptions import RalphError
-from git import commit_story, prepare_branch
-from models import PRD, Story
-from runners.runner import CodexRunner
+from ralph import ui
+from ralph.config import RalphConfig
+from ralph.exceptions import RalphError
+from ralph.git import commit_story, prepare_branch
+from ralph.models import PRD, Story
+from ralph.runners.runner import CodexRunner
 
 PROGRESS_PROMPT = """
 Update `.ralph/progress.md` with the new codebase pattens and gotchas, you just have discovered in this thread.

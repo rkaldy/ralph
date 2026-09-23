@@ -4,9 +4,9 @@ from pathlib import Path
 import typer
 from rich.panel import Panel
 
-import ui
-from codex import CodexSession
-from config import RalphConfig
+from ralph import ui
+from ralph.codex import CodexSession
+from ralph.config import RalphConfig
 
 
 class CodexRunner:

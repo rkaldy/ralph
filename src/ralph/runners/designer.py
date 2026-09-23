@@ -1,10 +1,10 @@
 from pydantic import Field
 
-import ui
-from config import RalphConfig
-from exceptions import RalphError
-from models import CodexResultBase
-from runners.runner import CodexRunner
+from ralph import ui
+from ralph.config import RalphConfig
+from ralph.exceptions import RalphError
+from ralph.models import CodexResultBase
+from ralph.runners.runner import CodexRunner
 
 
 class DesignResult(CodexResultBase):

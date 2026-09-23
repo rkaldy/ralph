@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 from types import TracebackType
 
@@ -16,9 +15,9 @@ from openai_codex.generated.v2_all import (
 )
 from pydantic import BaseModel, ValidationError
 
-from config import RalphConfig
-from exceptions import RalphError
-from ui import LiveRow, console, format_command
+from ralph.config import RalphConfig
+from ralph.exceptions import RalphError
+from ralph.ui import LiveRow, console, format_command
 
 COMPLETE_MARKER = "<COMPLETE>"
 AGENT_INITIAL_BUFFERING = len(COMPLETE_MARKER) + 3
@@ -62,11 +61,9 @@ class CodexSession:
         self.codex.__exit__(exc_type, exc_val, exc_tb)
 
     def _skill_path(self) -> Path:
-        checkout_skill = Path(__file__).resolve().parent.parent / f"skills/{self.skill}/SKILL.md"
-        installed_skill = Path(sys.prefix) / f"share/ralph/skills/{self.skill}/SKILL.md"
-        for path in (checkout_skill, installed_skill):
-            if path.is_file():
-                return path.resolve()
+        path = Path(__file__).resolve().parent / "skills" / self.skill / "SKILL.md"
+        if path.is_file():
+            return path
         raise RalphError(f"'{self.skill}' skill is not installed")
 
     def start_thread(self) -> None:

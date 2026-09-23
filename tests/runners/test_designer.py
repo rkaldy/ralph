@@ -4,24 +4,24 @@ from unittest.mock import MagicMock, call
 import pytest
 from pytest_mock import MockFixture
 
-from config import RalphConfig
-from runners.designer import Designer, DesignResult
+from ralph.config import RalphConfig
+from ralph.runners.designer import Designer, DesignResult
 
 
 @pytest.fixture
 def session_mock(mocker: MockFixture):
-    session_class_mock = mocker.patch("runners.runner.CodexSession", autospec=True)
+    session_class_mock = mocker.patch("ralph.runners.runner.CodexSession", autospec=True)
     return session_class_mock.return_value
 
 
 @pytest.fixture
 def prompt_user_mock(mocker: MockFixture):
-    return mocker.patch("runners.designer.ui.prompt_user", autospec=True)
+    return mocker.patch("ralph.runners.designer.ui.prompt_user", autospec=True)
 
 
 @pytest.fixture
 def console_mock(mocker: MockFixture):
-    return mocker.patch("runners.designer.ui.console", autospec=True)
+    return mocker.patch("ralph.runners.designer.ui.console", autospec=True)
 
 
 @pytest.fixture

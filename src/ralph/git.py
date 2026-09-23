@@ -1,8 +1,8 @@
 import subprocess
 from pathlib import Path
 
-import ui
-from exceptions import RalphError
+from ralph import ui
+from ralph.exceptions import RalphError
 
 
 def run_git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:

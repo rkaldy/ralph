@@ -1,6 +1,6 @@
 import pytest
 
-from models import PRD, Story
+from ralph.models import PRD, Story
 
 
 def story(*, story_id: str, priority: int, passes: bool) -> Story:

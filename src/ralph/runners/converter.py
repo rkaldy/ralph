@@ -2,10 +2,10 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import ui
-from config import RalphConfig
-from models import PRD, Story
-from runners.runner import CodexRunner
+from ralph import ui
+from ralph.config import RalphConfig
+from ralph.models import PRD, Story
+from ralph.runners.runner import CodexRunner
 
 
 @dataclass

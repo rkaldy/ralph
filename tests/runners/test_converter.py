@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from config import RalphConfig
-from runners.converter import Converter, MarkdownChapter
+from ralph.config import RalphConfig
+from ralph.runners.converter import Converter, MarkdownChapter
 
 
 @pytest.fixture
