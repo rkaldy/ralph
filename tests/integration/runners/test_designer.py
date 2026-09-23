@@ -12,9 +12,9 @@ from openai_codex.generated.v2_all import (
 )
 from pytest_mock import MockerFixture
 
-from codex import COMPLETE_MARKER, SUMMARY_PROMPT
-from config import RalphConfig
-from runners.designer import Designer, DesignResult
+from ralph.codex import COMPLETE_MARKER, SUMMARY_PROMPT
+from ralph.config import RalphConfig
+from ralph.runners.designer import Designer, DesignResult
 
 
 def test_designer_happy_path(
@@ -24,17 +24,17 @@ def test_designer_happy_path(
 ) -> None:
     monkeypatch.chdir(tmp_path)
 
-    thread_class_mock = mocker.patch("codex.Thread", autospec=True)
+    thread_class_mock = mocker.patch("ralph.codex.Thread", autospec=True)
     thread_mock = thread_class_mock.return_value
-    codex_class_mock = mocker.patch("codex.Codex", autospec=True)
+    codex_class_mock = mocker.patch("ralph.codex.Codex", autospec=True)
     codex_mock = codex_class_mock.return_value
     codex_mock.thread_start.return_value = thread_mock
 
-    mocker.patch("ui.console", autospec=True)
-    mocker.patch("codex.console", autospec=True)
-    mocker.patch("codex.LiveRow", autospec=True)
+    mocker.patch("ralph.ui.console", autospec=True)
+    mocker.patch("ralph.codex.console", autospec=True)
+    mocker.patch("ralph.codex.LiveRow", autospec=True)
     prompt_user_mock = mocker.patch(
-        "ui.prompt_user",
+        "ralph.ui.prompt_user",
         autospec=True,
         return_value="Store search filters",
     )

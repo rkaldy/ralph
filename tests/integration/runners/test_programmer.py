@@ -6,8 +6,8 @@ from unittest.mock import call
 from openai_codex import Sandbox, TextInput
 from pytest_mock import MockerFixture
 
-from config import RalphConfig
-from runners.programmer import PROGRESS_PROMPT, Programmer
+from ralph.config import RalphConfig
+from ralph.runners.programmer import PROGRESS_PROMPT, Programmer
 
 
 class SuccessfulProcess:
@@ -54,20 +54,20 @@ def test_programmer_happy_path(
         encoding="utf-8",
     )
 
-    thread_class_mock = mocker.patch("codex.Thread", autospec=True)
+    thread_class_mock = mocker.patch("ralph.codex.Thread", autospec=True)
     thread_mock = thread_class_mock.return_value
     thread_mock.turn.return_value.stream.return_value = []
-    codex_class_mock = mocker.patch("codex.Codex", autospec=True)
+    codex_class_mock = mocker.patch("ralph.codex.Codex", autospec=True)
     codex_mock = codex_class_mock.return_value
     codex_mock.thread_start.return_value = thread_mock
 
-    mocker.patch("ui.console", autospec=True)
-    mocker.patch("codex.console", autospec=True)
-    mocker.patch("codex.LiveRow", autospec=True)
-    prepare_branch_mock = mocker.patch("runners.programmer.prepare_branch", autospec=True)
-    commit_story_mock = mocker.patch("runners.programmer.commit_story", autospec=True)
+    mocker.patch("ralph.ui.console", autospec=True)
+    mocker.patch("ralph.codex.console", autospec=True)
+    mocker.patch("ralph.codex.LiveRow", autospec=True)
+    prepare_branch_mock = mocker.patch("ralph.runners.programmer.prepare_branch", autospec=True)
+    commit_story_mock = mocker.patch("ralph.runners.programmer.commit_story", autospec=True)
     popen_mock = mocker.patch(
-        "runners.programmer.subprocess.Popen",
+        "ralph.runners.programmer.subprocess.Popen",
         autospec=True,
         side_effect=[
             SuccessfulProcess("lint passed\n"),

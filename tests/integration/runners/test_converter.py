@@ -3,8 +3,8 @@ from pathlib import Path
 
 from pytest_mock import MockerFixture
 
-from config import RalphConfig
-from runners.converter import Converter
+from ralph.config import RalphConfig
+from ralph.runners.converter import Converter
 
 
 def test_converter_happy_path(
@@ -13,7 +13,7 @@ def test_converter_happy_path(
     tmp_path: Path,
 ) -> None:
     monkeypatch.chdir(tmp_path)
-    mocker.patch("ui.console", autospec=True)
+    mocker.patch("ralph.ui.console", autospec=True)
 
     prd_file = tmp_path / "offline-reading.md"
     prd_file.write_text(
