@@ -19,9 +19,31 @@ def load_config(ctx: typer.Context) -> None:
 @app.command()
 def designer(
     ctx: typer.Context,
-    feature: Annotated[str, typer.Argument(help="Simple, high-level feature description")],
+    feature: Annotated[
+        str | None,
+        typer.Argument(help="Simple, high-level feature description"),
+    ] = None,
+    feature_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--file",
+            "-f",
+            help="Read the feature description from a text file",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+        ),
+    ] = None,
 ) -> None:
     "Run design phase and create a PRD"
+    if feature_file is not None:
+        feature = feature_file.read_text(encoding="utf-8")
+    if feature is None:
+        raise typer.BadParameter("Provide FEATURE or -f")
+    if not (feature := feature.strip()):
+        raise typer.BadParameter("Feature description must not be empty")
+
     designer = Designer(ctx.obj, feature)
     designer.run()
 

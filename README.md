@@ -65,10 +65,19 @@ ralph programmer
 
 ## Commands
 
-### `ralph designer FEATURE`
+### Designer
+
+```bash
+ralph designer FEATURE
+```
+or
+```bash
+ralph designer -f feature.txt
+```
 
 Starts an interactive requirements session for a high-level feature description. Codex asks clarifying questions and splits the feature into stories.
 Stories are small enough for one focused Codex session and ordered so that dependencies are implemented first.
+
 The result is written into a PRD:
 
 ```text
